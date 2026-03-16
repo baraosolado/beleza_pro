@@ -69,7 +69,7 @@ async function build() {
       }
       cb(null, false);
     },
-    allowedMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
   await app.register(helmet, { contentSecurityPolicy: false });
