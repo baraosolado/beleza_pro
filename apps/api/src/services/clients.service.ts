@@ -6,7 +6,7 @@ type ServiceResult<T> =
 
 type CreateInput = { name: string; phone: string; email?: string; notes?: string };
 
-type ListQuery = { search?: string; page?: string; limit?: string };
+type ListQuery = { search?: string; page?: string; limit?: string; status?: 'all' | 'active' | 'new' };
 
 export async function list(
   userId: string,
@@ -16,18 +16,31 @@ export async function list(
   const limit = Math.min(100, Math.max(1, parseInt(query.limit ?? '20', 10)));
   const skip = (page - 1) * limit;
   const search = query.search?.trim();
-  const where = {
+  const status = query.status && query.status !== 'all' ? query.status : undefined;
+
+  const where: Record<string, unknown> = {
     userId,
-    ...(search
-      ? {
-          OR: [
-            { name: { contains: search, mode: 'insensitive' as const } },
-            { phone: { contains: search, mode: 'insensitive' as const } },
-          ],
-        }
-      : {}),
   };
-  const [items, total] = await Promise.all([
+
+  if (search) {
+    where.OR = [
+      { name: { contains: search, mode: 'insensitive' as const } },
+      { phone: { contains: search, mode: 'insensitive' as const } },
+    ];
+  }
+
+  if (status === 'new') {
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+    (where as any).createdAt = { gte: startOfMonth };
+  }
+
+  if (status === 'active') {
+    (where as any).appointments = { some: { userId } };
+  }
+
+  const [clients, total] = await Promise.all([
     prisma.client.findMany({
       where,
       orderBy: { name: 'asc' },
@@ -36,6 +49,46 @@ export async function list(
     }),
     prisma.client.count({ where }),
   ]);
+
+  const clientIds = clients.map((c) => c.id);
+
+  if (clientIds.length === 0) {
+    return { data: { items: [], total: 0 } };
+  }
+
+  const [lastAppointments, totals] = await Promise.all([
+    prisma.appointment.groupBy({
+      by: ['clientId'],
+      where: { userId, clientId: { in: clientIds } },
+      _max: { scheduledAt: true },
+    }),
+    prisma.charge.groupBy({
+      by: ['clientId'],
+      where: { userId, clientId: { in: clientIds }, status: 'paid' },
+      _sum: { amount: true },
+    }),
+  ]);
+
+  const lastMap = new Map<string, Date | null>();
+  lastAppointments.forEach((row) => {
+    lastMap.set(row.clientId, row._max.scheduledAt ?? null);
+  });
+
+  const totalMap = new Map<string, number>();
+  totals.forEach((row) => {
+    totalMap.set(row.clientId, Number(row._sum.amount ?? 0));
+  });
+
+  const items = clients.map((client) => ({
+    id: client.id,
+    name: client.name,
+    phone: client.phone,
+    email: client.email,
+    createdAt: client.createdAt,
+    lastAppointmentAt: lastMap.get(client.id) ?? null,
+    totalSpent: totalMap.get(client.id) ?? 0,
+  }));
+
   return { data: { items, total } };
 }
 
@@ -63,7 +116,44 @@ export async function getById(
     where: { id, userId },
   });
   if (!client) return { error: 'Cliente não encontrado', code: 'NOT_FOUND', statusCode: 404 };
-  return { data: client };
+  const [appointmentsCount, chargesByStatus, lastPayment] = await Promise.all([
+    prisma.appointment.count({ where: { userId, clientId: id } }),
+    prisma.charge.groupBy({
+      by: ['status'],
+      where: { userId, clientId: id },
+      _sum: { amount: true },
+    }),
+    prisma.charge.findFirst({
+      where: { userId, clientId: id, status: 'paid' },
+      orderBy: { paidAt: 'desc' },
+      select: { paidAt: true },
+    }),
+  ]);
+
+  let totalReceived = 0;
+  let totalPending = 0;
+
+  chargesByStatus.forEach((row) => {
+    const amount = Number(row._sum.amount ?? 0);
+    if (row.status === 'paid') {
+      totalReceived += amount;
+    } else if (row.status === 'pending' || row.status === 'overdue') {
+      totalPending += amount;
+    }
+  });
+
+  const totalSpent = totalReceived + totalPending;
+
+  return {
+    data: {
+      ...client,
+      appointmentsCount,
+      totalReceived,
+      totalPending,
+      totalSpent,
+      lastPaymentAt: lastPayment?.paidAt ?? null,
+    },
+  };
 }
 
 export async function update(

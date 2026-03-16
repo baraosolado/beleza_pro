@@ -17,6 +17,7 @@ const listQuerySchema = z.object({
   search: z.string().optional(),
   page: z.string().regex(/^\d+$/).optional(),
   limit: z.string().regex(/^\d+$/).optional(),
+  status: z.enum(['all', 'active', 'new']).optional(),
 });
 
 export async function list(

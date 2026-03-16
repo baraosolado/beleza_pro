@@ -47,14 +47,21 @@ export async function createPaymentIntent(params: {
   paymentMethodTypes?: string[];
 }): Promise<Stripe.PaymentIntent | null> {
   if (!stripe) return null;
-  return stripe.paymentIntents.create({
+  const base: Stripe.PaymentIntentCreateParams = {
     amount: Math.round(params.amount * 100),
     currency: params.currency,
     customer: params.customerId,
     metadata: params.metadata,
-    payment_method_types: params.paymentMethodTypes ?? ['pix', 'card'],
-    automatic_payment_methods: { enabled: true },
-  });
+  };
+
+  if (params.paymentMethodTypes && params.paymentMethodTypes.length > 0) {
+    base.payment_method_types = params.paymentMethodTypes;
+  } else {
+    // Deixa o Stripe escolher automaticamente os métodos disponíveis
+    base.automatic_payment_methods = { enabled: true };
+  }
+
+  return stripe.paymentIntents.create(base);
 }
 
 export async function cancelPaymentIntent(paymentIntentId: string): Promise<Stripe.PaymentIntent | null> {

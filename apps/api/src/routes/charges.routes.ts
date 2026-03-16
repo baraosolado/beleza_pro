@@ -9,6 +9,8 @@ export async function chargesRoutes(app: FastifyInstance): Promise<void> {
   app.get('/', chargesController.list);
   app.post('/', chargesController.create);
   app.get('/:id', chargesController.getById);
+  app.put('/:id', chargesController.update);
   app.get('/:id/pix', chargesController.getPix);
   app.get('/:id/payment-link', chargesController.getPaymentLink);
+  app.delete('/:id', chargesController.remove);
 }

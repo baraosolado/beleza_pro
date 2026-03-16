@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useState } from 'react';
-import { MessageCircle, MoreHorizontal, Search, Users } from 'lucide-react';
+import { MessageCircle, Search, Users } from 'lucide-react';
 
 import { Badge, Button, Card, Input, Skeleton } from '@/components/ui';
 import { Header } from '@/components/layout/Header';
@@ -15,6 +15,9 @@ type ClientItem = {
   name: string;
   phone: string;
   email: string | null;
+  createdAt: string;
+  lastAppointmentAt: string | null;
+  totalSpent: number;
 };
 
 export default function ClientsPage() {
@@ -23,13 +26,24 @@ export default function ClientsPage() {
   const [filter, setFilter] = useState<'all' | 'active' | 'new'>('all');
 
   const { data, isLoading } = useQuery({
-    queryKey: ['clients', 'list', search, page],
-    queryFn: () =>
-      api
-        .get<{ items: ClientItem[]; total: number }>(
-          `/clients?search=${encodeURIComponent(search)}&page=${page}&limit=10`
-        )
-        .then((r) => r.data),
+    queryKey: ['clients', 'list', search, page, filter],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        search,
+        page: String(page),
+        limit: '10',
+      });
+
+      if (filter !== 'all') {
+        params.set('status', filter);
+      }
+
+      const { data: response } = await api.get<{ items: ClientItem[]; total: number }>(
+        `/clients?${params.toString()}`
+      );
+
+      return response;
+    },
   });
 
   const items = data?.items ?? [];
@@ -38,6 +52,12 @@ export default function ClientsPage() {
   const from = total === 0 ? 0 : (page - 1) * 10 + 1;
   const to = Math.min(page * 10, total);
 
+  const filters: { key: typeof filter; label: string }[] = [
+    { key: 'all', label: 'Todas' },
+    { key: 'active', label: 'Ativas' },
+    { key: 'new', label: 'Novas este mês' },
+  ];
+
   function getInitials(name: string): string {
     return name
       .split(' ')
@@ -45,6 +65,19 @@ export default function ClientsPage() {
       .join('')
       .slice(0, 2)
       .toUpperCase();
+  }
+
+  function formatDate(dateString: string | null): string {
+    if (!dateString) return '—';
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return '—';
+    return new Intl.DateTimeFormat('pt-BR').format(date);
+  }
+
+  function getWhatsappLink(phone: string): string {
+    const digits = phone.replace(/\D/g, '');
+    if (!digits) return '#';
+    return `https://wa.me/55${digits}`;
   }
 
   return (
@@ -56,57 +89,97 @@ export default function ClientsPage() {
         onAction={() => window.location.assign('/clients/new')}
       />
       <main className="flex-1 overflow-auto p-8">
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative max-w-sm flex-1">
-            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-            <Input
-              placeholder="Buscar por nome ou telefone"
-              className="pl-10"
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
-            />
+        {/* Filtros, busca e ordenação */}
+        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
+            {filters.map(({ key, label }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setFilter(key)}
+                className={cn(
+                  'whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-colors',
+                  filter === key
+                    ? 'bg-primary text-white'
+                    : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'
+                )}
+              >
+                {label}
+              </button>
+            ))}
           </div>
-        </div>
 
-        <div className="mb-4 flex flex-wrap items-center gap-2">
-          {(
-            [
-              { key: 'all', label: 'Todas' },
-              { key: 'active', label: 'Ativas' },
-              { key: 'new', label: 'Novas este mês' },
-            ] as const
-          ).map(({ key, label }) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setFilter(key)}
-              className={cn(
-                'rounded-full px-4 py-2 text-sm font-medium transition-colors',
-                filter === key
-                  ? 'bg-primary/10 text-primary'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              )}
-            >
-              {label}
-            </button>
-          ))}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+            <div className="relative min-w-[260px]">
+              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+              <Input
+                placeholder="Buscar cliente..."
+                className="pl-10"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+            <div className="flex items-center justify-between gap-2 sm:justify-end">
+              <span className="text-sm text-slate-500">Ordenar por:</span>
+              <Button
+                type="button"
+                variant="outline"
+                className="flex items-center gap-1 text-sm"
+              >
+                Mais recentes
+              </Button>
+            </div>
+          </div>
         </div>
 
         <Card className="overflow-hidden p-0">
           {isLoading ? (
-            <div className="divide-y divide-slate-100">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="flex items-center gap-4 p-6">
-                  <Skeleton className="size-10 rounded-full" />
-                  <div className="flex-1">
-                    <Skeleton className="mb-2 h-5 w-32" />
-                    <Skeleton className="h-4 w-48" />
-                  </div>
-                </div>
-              ))}
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-left">
+                <thead>
+                  <tr className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <th className="px-6 py-4">Cliente</th>
+                    <th className="px-6 py-4">Telefone</th>
+                    <th className="px-6 py-4">Último atendimento</th>
+                    <th className="px-6 py-4 text-right">Total gasto</th>
+                    <th className="px-6 py-4">Status</th>
+                    <th className="px-6 py-4 text-center">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <tr key={i} className="border-t border-slate-100">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <Skeleton className="size-9 rounded-full" />
+                          <div>
+                            <Skeleton className="mb-2 h-4 w-32" />
+                            <Skeleton className="h-3 w-40" />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <Skeleton className="h-3 w-32" />
+                      </td>
+                      <td className="px-6 py-4">
+                        <Skeleton className="h-3 w-24" />
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <Skeleton className="ml-auto h-3 w-20" />
+                      </td>
+                      <td className="px-6 py-4">
+                        <Skeleton className="h-5 w-16 rounded-full" />
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <Skeleton className="mx-auto h-3 w-10" />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           ) : items.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -122,54 +195,81 @@ export default function ClientsPage() {
             </div>
           ) : (
             <>
-              <div className="divide-y divide-slate-100">
-                {items.map((client) => (
-                  <div
-                    key={client.id}
-                    className="flex flex-wrap items-center gap-4 p-6 hover:bg-slate-50"
-                  >
-                    <div className="flex items-center gap-4">
-                      <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                        {getInitials(client.name)}
-                      </span>
-                      <div>
-                        <p className="font-bold text-slate-800">
-                          {client.name}
-                        </p>
-                        {client.email && (
-                          <p className="text-sm text-slate-500">
-                            {client.email}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 text-slate-600">
-                      <MessageCircle className="size-4 text-emerald-500" />
-                      <span className="text-sm">{client.phone}</span>
-                    </div>
-                    <div className="text-sm text-slate-500">—</div>
-                    <div className="font-bold text-emerald-600">
-                      {formatCurrency(0)}
-                    </div>
-                    <div>
-                      <Badge variant="confirmed">Ativa</Badge>
-                    </div>
-                    <div className="ml-auto flex items-center gap-2">
-                      <Link href={`/clients/${client.id}`}>
-                        <Button variant="ghost" type="button">
-                          Ver
-                        </Button>
-                      </Link>
-                      <button
-                        type="button"
-                        className="rounded p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-                        aria-label="Mais opções"
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-left">
+                  <thead>
+                    <tr className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      <th className="px-6 py-4">Cliente</th>
+                      <th className="px-6 py-4">Telefone</th>
+                      <th className="px-6 py-4">Último atendimento</th>
+                      <th className="px-6 py-4 text-right">Total gasto</th>
+                      <th className="px-6 py-4">Status</th>
+                      <th className="px-6 py-4 text-center">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {items.map((client) => (
+                      <tr
+                        key={client.id}
+                        className="hover:bg-slate-50 transition-colors"
                       >
-                        <MoreHorizontal className="size-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                              {getInitials(client.name)}
+                            </span>
+                            <div>
+                              <p className="font-bold text-slate-900">
+                                {client.name}
+                              </p>
+                              {client.email && (
+                                <p className="text-sm text-slate-500">
+                                  {client.email}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2 text-sm text-slate-600">
+                            <MessageCircle className="size-4 text-emerald-500" />
+                            <a
+                              href={getWhatsappLink(client.phone)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="hover:underline"
+                            >
+                              {client.phone}
+                            </a>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-slate-500">
+                          {formatDate(client.lastAppointmentAt)}
+                        </td>
+                        <td className="px-6 py-4 text-right text-sm font-semibold text-emerald-600">
+                          {formatCurrency(client.totalSpent ?? 0)}
+                        </td>
+                        <td className="px-6 py-4">
+                          <Badge variant="confirmed">
+                            {client.lastAppointmentAt ? 'Ativa' : 'Inativa'}
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <Link href={`/clients/${client.id}`}>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              className="px-0 text-sm font-semibold text-primary hover:text-primary hover:bg-transparent"
+                            >
+                              Ver
+                            </Button>
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
               <div className="flex flex-wrap items-center justify-between gap-4 border-t border-slate-100 px-6 py-4">
                 <p className="text-sm text-slate-500">

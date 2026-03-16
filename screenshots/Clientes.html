@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Beleza Pro - Lista de Clientes</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#7c3aed",
+                        "background-light": "#f7f6f8",
+                        "background-dark": "#171121",
+                        "sidebar-bg": "#1E1B4B",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100">
+<div class="flex h-screen overflow-hidden">
+<!-- Sidebar -->
+<aside class="w-64 bg-sidebar-bg flex flex-col shrink-0">
+<div class="p-6">
+<div class="flex items-center gap-3">
+<div class="size-10 bg-primary rounded-lg flex items-center justify-center text-white">
+<span class="material-symbols-outlined">face_3</span>
+</div>
+<div>
+<h1 class="text-white text-lg font-bold leading-tight">Beleza Pro</h1>
+<p class="text-indigo-300 text-xs">Gestão de Estética</p>
+</div>
+</div>
+</div>
+<nav class="flex-1 px-4 flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2 text-indigo-300 hover:bg-white/10 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-sm font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-indigo-300 hover:bg-white/10 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined">calendar_today</span>
+<span class="text-sm font-medium">Agenda</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 bg-primary text-white rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">group</span>
+<span class="text-sm font-medium">Clientes</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-indigo-300 hover:bg-white/10 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined">content_cut</span>
+<span class="text-sm font-medium">Serviços</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-indigo-300 hover:bg-white/10 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined">payments</span>
+<span class="text-sm font-medium">Financeiro</span>
+</a>
+</nav>
+<div class="p-4 border-t border-indigo-900">
+<a class="flex items-center gap-3 px-3 py-2 text-indigo-300 hover:bg-white/10 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-sm font-medium">Configurações</span>
+</a>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 flex flex-col overflow-y-auto">
+<!-- Header -->
+<header class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-6 sticky top-0 z-10">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4 max-w-7xl mx-auto w-full">
+<div>
+<h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100">Clientes</h2>
+<p class="text-slate-500 dark:text-slate-400 text-sm">87 clientes cadastradas</p>
+</div>
+<div class="flex items-center gap-3">
+<div class="relative min-w-[300px]">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-lg focus:ring-2 focus:ring-primary text-sm text-slate-900 dark:text-slate-100" placeholder="Buscar cliente..." type="text"/>
+</div>
+<button class="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+                            + Nova Cliente
+                        </button>
+</div>
+</div>
+</header>
+<div class="p-6 space-y-6 max-w-7xl mx-auto w-full">
+<!-- Filter Pills & Sorting -->
+<div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+<div class="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 w-full sm:w-auto">
+<button class="px-4 py-1.5 rounded-full bg-primary text-white text-sm font-medium whitespace-nowrap">Todas</button>
+<button class="px-4 py-1.5 rounded-full bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-sm font-medium whitespace-nowrap hover:bg-slate-50 dark:hover:bg-slate-700">Ativas</button>
+<button class="px-4 py-1.5 rounded-full bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-sm font-medium whitespace-nowrap hover:bg-slate-50 dark:hover:bg-slate-700">Novas este mês</button>
+</div>
+<div class="flex items-center gap-2 shrink-0">
+<span class="text-sm text-slate-500">Ordenar por:</span>
+<button class="flex items-center gap-1 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-primary transition-colors">
+                            Mais Recentes
+                            <span class="material-symbols-outlined text-sm">expand_more</span>
+</button>
+</div>
+</div>
+<!-- Clients Table -->
+<div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider font-semibold">
+<th class="px-6 py-4">Cliente</th>
+<th class="px-6 py-4">Telefone</th>
+<th class="px-6 py-4">Último Atendimento</th>
+<th class="px-6 py-4 text-right">Total Gasto</th>
+<th class="px-6 py-4">Status</th>
+<th class="px-6 py-4 text-center">Ações</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+<tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">AS</div>
+<span class="font-bold text-slate-900 dark:text-slate-100">Ana Silva</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+<span class="material-symbols-outlined text-emerald-500 text-lg">chat</span>
+                                            (11) 98765-4321
+                                        </div>
+</td>
+<td class="px-6 py-4 text-slate-600 dark:text-slate-400">12/10/2023</td>
+<td class="px-6 py-4 text-right font-semibold text-emerald-600">R$ 450,00</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">Ativa</span>
+</td>
+<td class="px-6 py-4 text-center">
+<button class="text-primary font-bold hover:underline text-sm">Ver</button>
+</td>
+</tr>
+<tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">FC</div>
+<span class="font-bold text-slate-900 dark:text-slate-100">Fernanda Costa</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+<span class="material-symbols-outlined text-emerald-500 text-lg">chat</span>
+                                            (21) 99876-5432
+                                        </div>
+</td>
+<td class="px-6 py-4 text-slate-600 dark:text-slate-400">05/10/2023</td>
+<td class="px-6 py-4 text-right font-semibold text-emerald-600">R$ 1.200,00</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">Ativa</span>
+</td>
+<td class="px-6 py-4 text-center">
+<button class="text-primary font-bold hover:underline text-sm">Ver</button>
+</td>
+</tr>
+<tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">JM</div>
+<span class="font-bold text-slate-900 dark:text-slate-100">Juliana Mendes</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+<span class="material-symbols-outlined text-emerald-500 text-lg">chat</span>
+                                            (31) 98877-6655
+                                        </div>
+</td>
+<td class="px-6 py-4 text-slate-600 dark:text-slate-400">28/09/2023</td>
+<td class="px-6 py-4 text-right font-semibold text-emerald-600">R$ 320,00</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-400">Inativa</span>
+</td>
+<td class="px-6 py-4 text-center">
+<button class="text-primary font-bold hover:underline text-sm">Ver</button>
+</td>
+</tr>
+<tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">CO</div>
+<span class="font-bold text-slate-900 dark:text-slate-100">Camila Oliveira</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+<span class="material-symbols-outlined text-emerald-500 text-lg">chat</span>
+                                            (41) 97766-5544
+                                        </div>
+</td>
+<td class="px-6 py-4 text-slate-600 dark:text-slate-400">15/10/2023</td>
+<td class="px-6 py-4 text-right font-semibold text-emerald-600">R$ 890,00</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">Ativa</span>
+</td>
+<td class="px-6 py-4 text-center">
+<button class="text-primary font-bold hover:underline text-sm">Ver</button>
+</td>
+</tr>
+<tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">BS</div>
+<span class="font-bold text-slate-900 dark:text-slate-100">Beatriz Santos</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+<span class="material-symbols-outlined text-emerald-500 text-lg">chat</span>
+                                            (11) 96655-4433
+                                        </div>
+</td>
+<td class="px-6 py-4 text-slate-600 dark:text-slate-400">02/10/2023</td>
+<td class="px-6 py-4 text-right font-semibold text-emerald-600">R$ 150,00</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">Ativa</span>
+</td>
+<td class="px-6 py-4 text-center">
+<button class="text-primary font-bold hover:underline text-sm">Ver</button>
+</td>
+</tr>
+<tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">LF</div>
+<span class="font-bold text-slate-900 dark:text-slate-100">Larissa Ferreira</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+<span class="material-symbols-outlined text-emerald-500 text-lg">chat</span>
+                                            (61) 95544-3322
+                                        </div>
+</td>
+<td class="px-6 py-4 text-slate-600 dark:text-slate-400">20/09/2023</td>
+<td class="px-6 py-4 text-right font-semibold text-emerald-600">R$ 2.100,00</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">Ativa</span>
+</td>
+<td class="px-6 py-4 text-center">
+<button class="text-primary font-bold hover:underline text-sm">Ver</button>
+</td>
+</tr>
+<tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">GL</div>
+<span class="font-bold text-slate-900 dark:text-slate-100">Gabriela Lima</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+<span class="material-symbols-outlined text-emerald-500 text-lg">chat</span>
+                                            (71) 94433-2211
+                                        </div>
+</td>
+<td class="px-6 py-4 text-slate-600 dark:text-slate-400">10/10/2023</td>
+<td class="px-6 py-4 text-right font-semibold text-emerald-600">R$ 560,00</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-400">Inativa</span>
+</td>
+<td class="px-6 py-4 text-center">
+<button class="text-primary font-bold hover:underline text-sm">Ver</button>
+</td>
+</tr>
+<tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">PR</div>
+<span class="font-bold text-slate-900 dark:text-slate-100">Patrícia Rocha</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+<span class="material-symbols-outlined text-emerald-500 text-lg">chat</span>
+                                            (81) 93322-1100
+                                        </div>
+</td>
+<td class="px-6 py-4 text-slate-600 dark:text-slate-400">14/10/2023</td>
+<td class="px-6 py-4 text-right font-semibold text-emerald-600">R$ 780,00</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">Ativa</span>
+</td>
+<td class="px-6 py-4 text-center">
+<button class="text-primary font-bold hover:underline text-sm">Ver</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Footer / Pagination -->
+<div class="flex flex-col sm:flex-row items-center justify-between gap-4 py-2 border-t border-slate-200 dark:border-slate-800 pt-6">
+<p class="text-sm text-slate-500">Exibindo 1–8 de 87 clientes</p>
+<div class="flex items-center gap-2">
+<button class="size-9 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 disabled:opacity-50" disabled="">
+<span class="material-symbols-outlined">chevron_left</span>
+</button>
+<button class="size-9 flex items-center justify-center rounded-lg bg-primary text-white text-sm font-medium">1</button>
+<button class="size-9 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm font-medium">2</button>
+<button class="size-9 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm font-medium">3</button>
+<span class="text-slate-400">...</span>
+<button class="size-9 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm font-medium">11</button>
+<button class="size-9 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

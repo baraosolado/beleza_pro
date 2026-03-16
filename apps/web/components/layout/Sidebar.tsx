@@ -32,30 +32,50 @@ const navItems: NavItem[] = [
 type SidebarProps = {
   userName?: string;
   userPlan?: string;
+  userAvatar?: string;
   className?: string;
 };
 
 export function Sidebar({
   userName = 'Usuário',
   userPlan = 'Trial',
+  userAvatar,
   className,
 }: SidebarProps): React.ReactElement {
   const pathname = usePathname();
 
+  const initials = userName
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+
   return (
     <>
+      {/* Desktop sidebar */}
       <aside
         className={cn(
-          'hidden w-60 min-w-[240px] shrink-0 flex-col border-r border-white/10 bg-[#1E1B4B] lg:flex',
+          'hidden w-[240px] shrink-0 flex-col bg-[#1a1744] lg:flex',
           className
         )}
       >
-        <div className="border-b border-white/10 p-6">
-          <h1 className="text-xl font-bold tracking-tight text-white">
-            Beleza Pro
-          </h1>
+        {/* Logo */}
+        <div className="flex items-center gap-3 px-6 py-5">
+          <div className="flex size-9 items-center justify-center rounded-xl bg-violet-500 shadow-lg shadow-violet-500/30">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <path d="M9 2L16 6V12L9 16L2 12V6L9 2Z" fill="white" fillOpacity="0.9" />
+              <path d="M9 5L13 7.5V12.5L9 15L5 12.5V7.5L9 5Z" fill="white" fillOpacity="0.3" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-[15px] font-bold leading-none text-white">Beleza Pro</p>
+            <p className="mt-0.5 text-[11px] text-white/40">Gestão de Estética</p>
+          </div>
         </div>
-        <nav className="flex-1 space-y-1 overflow-y-auto p-4 custom-scrollbar">
+
+        {/* Nav */}
+        <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 pb-4">
           {navItems.map((item) => {
             const isActive =
               pathname === item.href ||
@@ -66,31 +86,45 @@ export function Sidebar({
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'flex items-center gap-3 rounded-lg px-4 py-3 transition-all',
+                  'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all',
                   isActive
-                    ? 'sidebar-item-active bg-white/10 text-white'
-                    : 'text-white/70 hover:bg-white/5 hover:text-white'
+                    ? 'bg-violet-600 font-semibold text-white shadow-md shadow-violet-600/20'
+                    : 'font-medium text-white/50 hover:bg-white/5 hover:text-white/80'
                 )}
               >
-                <Icon className="size-5 shrink-0" />
+                <Icon className="size-[18px] shrink-0" />
                 <span>{item.label}</span>
               </Link>
             );
           })}
         </nav>
-        <div className="border-t border-white/10 p-4">
-          <div className="flex items-center gap-3">
-            <div className="size-10 shrink-0 rounded-full border-2 border-primary bg-slate-600" />
+
+        {/* User */}
+        <div className="border-t border-white/5 px-3 py-4">
+          <div className="flex items-center gap-3 rounded-xl px-3 py-2.5">
+            <div className="relative size-9 shrink-0">
+              {userAvatar ? (
+                <img
+                  src={userAvatar}
+                  alt={userName}
+                  className="size-9 rounded-full object-cover"
+                />
+              ) : (
+                <div className="flex size-9 items-center justify-center rounded-full bg-violet-500/20 text-xs font-bold text-violet-300">
+                  {initials}
+                </div>
+              )}
+              <span className="absolute bottom-0 right-0 size-2.5 rounded-full border-2 border-[#1a1744] bg-emerald-400" />
+            </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-bold text-white">
-                {userName}
-              </p>
-              <p className="text-xs text-white/50">{userPlan}</p>
+              <p className="truncate text-sm font-semibold text-white">{userName}</p>
+              <p className="text-[11px] text-white/40">{userPlan}</p>
             </div>
           </div>
         </div>
       </aside>
 
+      {/* Mobile bottom nav */}
       <nav className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around border-t border-slate-200 bg-white py-2 lg:hidden">
         {navItems.map((item) => {
           const isActive =
@@ -103,7 +137,7 @@ export function Sidebar({
               href={item.href}
               className={cn(
                 'flex flex-col items-center gap-1 rounded-lg px-3 py-2 text-xs transition-all',
-                isActive ? 'text-primary' : 'text-slate-500 hover:text-slate-700'
+                isActive ? 'text-violet-600' : 'text-slate-400 hover:text-slate-700'
               )}
             >
               <Icon className="size-5" />
@@ -115,3 +149,4 @@ export function Sidebar({
     </>
   );
 }
+

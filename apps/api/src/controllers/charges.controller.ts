@@ -12,6 +12,13 @@ const createSchema = z.object({
   dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).or(z.coerce.date()),
 });
 
+const updateSchema = z.object({
+  amount: z.number().min(0).optional(),
+  description: z.string().optional(),
+  dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).or(z.coerce.date()).optional(),
+  status: z.enum(['pending', 'paid', 'overdue', 'cancelled']).optional(),
+});
+
 const listQuerySchema = z.object({
   status: z.enum(['pending', 'paid', 'overdue', 'cancelled']).optional(),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
@@ -37,7 +44,10 @@ export async function create(
 ): Promise<FastifyReply> {
   const parsed = createSchema.safeParse(request.body);
   if (!parsed.success) return replyError(reply, 400, 'Dados inválidos', 'VALIDATION_ERROR');
-  const dueDate = typeof parsed.data.dueDate === 'string' ? new Date(parsed.data.dueDate) : parsed.data.dueDate;
+  const dueDate =
+    typeof parsed.data.dueDate === 'string'
+      ? new Date(`${parsed.data.dueDate}T00:00:00`)
+      : parsed.data.dueDate;
   const result = await chargesService.create(request.userId, { ...parsed.data, dueDate });
   if (result.error) return replyError(reply, result.statusCode, result.error, result.code);
   return reply.status(201).send(result.data);
@@ -48,6 +58,26 @@ export async function getById(
   reply: FastifyReply
 ): Promise<FastifyReply> {
   const result = await chargesService.getById(request.userId, request.params.id);
+  if (result.error) return replyError(reply, result.statusCode, result.error, result.code);
+  return reply.send(result.data);
+}
+
+export async function update(
+  request: FastifyRequest<{ Params: { id: string }; Body: unknown }>,
+  reply: FastifyReply
+): Promise<FastifyReply> {
+  const parsed = updateSchema.safeParse(request.body);
+  if (!parsed.success) return replyError(reply, 400, 'Dados inválidos', 'VALIDATION_ERROR');
+
+  const dueDate =
+    parsed.data.dueDate && typeof parsed.data.dueDate === 'string'
+      ? new Date(`${parsed.data.dueDate}T00:00:00`)
+      : (parsed.data.dueDate as Date | undefined);
+
+  const result = await chargesService.update(request.userId, request.params.id, {
+    ...parsed.data,
+    ...(dueDate && { dueDate }),
+  });
   if (result.error) return replyError(reply, result.statusCode, result.error, result.code);
   return reply.send(result.data);
 }
@@ -68,4 +98,13 @@ export async function getPaymentLink(
   const result = await chargesService.getPaymentLink(request.userId, request.params.id);
   if (result.error) return replyError(reply, result.statusCode, result.error, result.code);
   return reply.send(result.data);
+}
+
+export async function remove(
+  request: FastifyRequest<{ Params: { id: string } }>,
+  reply: FastifyReply
+): Promise<FastifyReply> {
+  const result = await chargesService.remove(request.userId, request.params.id);
+  if (result.error) return replyError(reply, result.statusCode, result.error, result.code);
+  return reply.status(204).send();
 }

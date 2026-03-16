@@ -1,8 +1,9 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { MessageCircle, Pencil } from 'lucide-react';
 
 import { Badge, Button, Card, Skeleton } from '@/components/ui';
@@ -16,18 +17,27 @@ type Client = {
   phone: string;
   email: string | null;
   notes: string | null;
+  createdAt?: string;
+  appointmentsCount?: number;
+  totalReceived?: number;
+  totalPending?: number;
+  totalSpent?: number;
+  lastPaymentAt?: string | null;
 };
 
 type AppointmentItem = {
   id: string;
   scheduledAt: string;
   status: string;
-  service: { name: string };
+  service: { name: string; durationMin?: number | null };
 };
 
 export default function ClientDetailPage() {
   const params = useParams();
   const id = params.id as string;
+
+  const queryClient = useQueryClient();
+  const [notes, setNotes] = useState('');
 
   const { data: client, isLoading: clientLoading } = useQuery({
     queryKey: ['clients', id],
@@ -44,6 +54,22 @@ export default function ClientDetailPage() {
   });
 
   const items = Array.isArray(appointments) ? appointments : [];
+
+  useEffect(() => {
+    if (client) {
+      setNotes(client.notes ?? '');
+    }
+  }, [client]);
+
+  const updateNotesMutation = useMutation({
+    mutationFn: (newNotes: string) =>
+      api.put(`/clients/${id}`, {
+        notes: newNotes || undefined,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients', id] });
+    },
+  });
 
   function getInitials(name: string): string {
     return name
@@ -78,6 +104,20 @@ export default function ClientDetailPage() {
                 : status}
       </Badge>
     );
+  }
+
+  function getWhatsappLink(phone: string, text?: string): string | null {
+    const digits = phone.replace(/\D/g, '');
+    if (!digits) return null;
+    const base = `https://wa.me/55${digits}`;
+    if (!text) return base;
+    return `${base}?text=${encodeURIComponent(text)}`;
+  }
+
+  function openWhatsApp(message: string) {
+    const url = getWhatsappLink(client.phone, message);
+    if (!url) return;
+    window.open(url, '_blank', 'noopener,noreferrer');
   }
 
   if (clientLoading || !client) {
@@ -120,8 +160,22 @@ export default function ClientDetailPage() {
                 )}
                 <div className="mt-2 flex flex-wrap gap-2">
                   <span className="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-600">
-                    {items.length} atendimentos
+                    {(client.appointmentsCount ?? items.length) || 0} atendimentos
                   </span>
+                  {typeof client.totalSpent === 'number' && (
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-600">
+                      {formatCurrency(client.totalSpent)} gasto no total
+                    </span>
+                  )}
+                  {client.createdAt && (
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-600">
+                      Cliente desde{' '}
+                      {new Intl.DateTimeFormat('pt-BR', {
+                        month: 'short',
+                        year: 'numeric',
+                      }).format(new Date(client.createdAt))}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -129,7 +183,15 @@ export default function ClientDetailPage() {
               <Link href={`/schedule/new?clientId=${client.id}`}>
                 <Button>Novo Agendamento</Button>
               </Link>
-              <Button variant="outline" type="button">
+              <Button
+                variant="outline"
+                type="button"
+                onClick={() =>
+                  openWhatsApp(
+                    `Oi ${client.name.split(' ')[0]}, tudo bem? Aqui é do Beleza Pro.`
+                  )
+                }
+              >
                 <MessageCircle className="size-4" />
                 Enviar WhatsApp
               </Button>
@@ -166,6 +228,7 @@ export default function ClientDetailPage() {
                       <tr className="border-b border-slate-200 text-left text-slate-500">
                         <th className="pb-2 font-medium">Data</th>
                         <th className="pb-2 font-medium">Serviço</th>
+                        <th className="pb-2 font-medium">Duração</th>
                         <th className="pb-2 font-medium">Status</th>
                         <th className="pb-2 font-medium">Valor</th>
                       </tr>
@@ -176,11 +239,16 @@ export default function ClientDetailPage() {
                           key={apt.id}
                           className="border-b border-slate-100"
                         >
-                          <td className="py-3">
+                          <td className="py-3 whitespace-nowrap">
                             {formatDate(apt.scheduledAt)} às{' '}
                             {formatTime(apt.scheduledAt)}
                           </td>
                           <td className="py-3">{apt.service.name}</td>
+                          <td className="py-3">
+                            {apt.service.durationMin
+                              ? `${apt.service.durationMin} min`
+                              : '—'}
+                          </td>
                           <td className="py-3">{statusBadge(apt.status)}</td>
                           <td className="py-3">—</td>
                         </tr>
@@ -208,10 +276,17 @@ export default function ClientDetailPage() {
               <textarea
                 className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm text-slate-800 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 rows={4}
-                defaultValue={client.notes ?? ''}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
                 placeholder="Anotações sobre a cliente..."
               />
-              <Button type="button" variant="outline" className="mt-3">
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-3"
+                isLoading={updateNotesMutation.isPending}
+                onClick={() => updateNotesMutation.mutate(notes)}
+              >
                 Salvar
               </Button>
             </Card>
@@ -224,18 +299,24 @@ export default function ClientDetailPage() {
                 <div className="flex justify-between">
                   <dt className="text-slate-500">Total recebido</dt>
                   <dd className="font-bold text-emerald-600">
-                    {formatCurrency(0)}
+                    {formatCurrency(client.totalReceived ?? 0)}
                   </dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-slate-500">Pendente</dt>
                   <dd className="font-bold text-amber-600">
-                    {formatCurrency(0)}
+                    {formatCurrency(client.totalPending ?? 0)}
                   </dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-slate-500">Último pagamento</dt>
-                  <dd className="text-slate-600">—</dd>
+                  <dd className="text-slate-600">
+                    {client.lastPaymentAt
+                      ? new Intl.DateTimeFormat('pt-BR').format(
+                          new Date(client.lastPaymentAt)
+                        )
+                      : '—'}
+                  </dd>
                 </div>
               </dl>
             </Card>
@@ -248,18 +329,33 @@ export default function ClientDetailPage() {
                 <button
                   type="button"
                   className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  onClick={() =>
+                    openWhatsApp(
+                      `Oi ${client.name.split(' ')[0]}, tudo bem? Lembrete do seu agendamento conosco.`
+                    )
+                  }
                 >
                   Lembrete de agendamento
                 </button>
                 <button
                   type="button"
                   className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  onClick={() =>
+                    openWhatsApp(
+                      `Oi ${client.name.split(' ')[0]}, tudo bem? Lembrete de pagamento do seu atendimento.`
+                    )
+                  }
                 >
                   Lembrete de pagamento
                 </button>
                 <button
                   type="button"
                   className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  onClick={() =>
+                    openWhatsApp(
+                      `Oi ${client.name.split(' ')[0]}, tudo bem?`
+                    )
+                  }
                 >
                   Mensagem personalizada
                 </button>

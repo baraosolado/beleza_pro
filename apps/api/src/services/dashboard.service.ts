@@ -87,44 +87,108 @@ export async function financial(
     overdue: number;
   }>
 > {
-  const start = query.startDate ? new Date(query.startDate) : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-  const end = query.endDate ? new Date(query.endDate) : new Date();
+  const hasCustomRange = !!(query.startDate || query.endDate);
+
+  // Quando não há filtro de data explícito (modo "Todos" na UI),
+  // usamos um intervalo bem amplo para considerar todo o histórico.
+  const start = query.startDate
+    ? new Date(query.startDate)
+    : hasCustomRange
+      ? new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+      : new Date(2000, 0, 1);
+
+  const end = query.endDate
+    ? new Date(query.endDate)
+    : hasCustomRange
+      ? new Date()
+      : new Date(2100, 0, 1);
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
     return { error: 'Datas inválidas', code: 'VALIDATION_ERROR', statusCode: 400 };
   }
 
-  const [received, pending, overdue] = await Promise.all([
-    prisma.charge.aggregate({
-      where: {
-        userId,
-        status: 'paid',
-        paidAt: { gte: start, lte: end },
-      },
-      _sum: { amount: true },
-    }),
-    prisma.charge.aggregate({
-      where: {
-        userId,
-        status: 'pending',
-        dueDate: { gte: start, lte: end },
-      },
-      _sum: { amount: true },
-    }),
-    prisma.charge.aggregate({
-      where: {
-        userId,
-        status: 'overdue',
-        dueDate: { gte: start, lte: end },
-      },
-      _sum: { amount: true },
-    }),
-  ]);
+  // Normalizamos "hoje" em meia-noite para comparar só por data (igual à UI)
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Buscamos as cobranças do usuário que tenham alguma relação com o período:
+  // - Se foi paga: usamos paidAt (se existir) OU dueDate como referência
+  // - Se ainda não foi paga: usamos dueDate como referência
+  const charges = await prisma.charge.findMany({
+    where: {
+      userId,
+    },
+    select: {
+      amount: true,
+      status: true,
+      dueDate: true,
+      paidAt: true,
+      createdAt: true,
+    },
+  });
+
+  let receivedTotal = 0;
+  let pendingTotal = 0;
+  let overdueTotal = 0;
+
+  for (const charge of charges) {
+    const amount = Number(charge.amount ?? 0);
+
+    // Data de referência para filtro de período:
+    // - Se estiver paga: paidAt > dueDate > createdAt > hoje
+    // - Se não estiver paga: dueDate > createdAt, senão ignora
+    let referenceDate: Date | null = null;
+    if (charge.status === 'paid') {
+      if (charge.paidAt) {
+        referenceDate = new Date(charge.paidAt);
+      } else if (charge.dueDate) {
+        referenceDate = new Date(charge.dueDate);
+      } else if (charge.createdAt) {
+        referenceDate = new Date(charge.createdAt);
+      } else {
+        referenceDate = today;
+      }
+    } else if (charge.dueDate) {
+      referenceDate = new Date(charge.dueDate);
+    } else if (charge.createdAt) {
+      referenceDate = new Date(charge.createdAt);
+    }
+
+    // Se temos um período custom (start/end vindos da query),
+    // só consideramos cobranças cuja data de referência cai dentro desse intervalo.
+    if (!referenceDate || referenceDate < start || referenceDate > end) {
+      continue;
+    }
+
+    // Total recebido: qualquer cobrança com status pago dentro do período
+    if (charge.status === 'paid') {
+      receivedTotal += amount;
+      continue;
+    }
+
+    // Ignoramos canceladas no resumo financeiro
+    if (charge.status === 'cancelled') {
+      continue;
+    }
+
+    // Para pendente / inadimplente usamos a mesma regra da UI (status efetivo):
+    // - Se dueDate < hoje -> inadimplente
+    // - Se dueDate >= hoje -> pendente
+    if (!charge.dueDate) continue;
+    const due = new Date(charge.dueDate);
+    const dueDay = new Date(due.getFullYear(), due.getMonth(), due.getDate());
+
+    if (dueDay < today) {
+      overdueTotal += amount;
+    } else {
+      pendingTotal += amount;
+    }
+  }
 
   return {
     data: {
-      received: Number(received._sum.amount ?? 0),
-      pending: Number(pending._sum.amount ?? 0),
-      overdue: Number(overdue._sum.amount ?? 0),
+      received: receivedTotal,
+      pending: pendingTotal,
+      overdue: overdueTotal,
     },
   };
 }

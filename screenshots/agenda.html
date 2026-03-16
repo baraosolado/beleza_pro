@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Beleza Pro - Agenda Semanal</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#7c3bed",
+                        "background-light": "#f7f6f8",
+                        "background-dark": "#171121",
+                        "sidebar-navy": "#1E1B4B"
+                    },
+                    fontFamily: {
+                        "display": ["Inter"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .lunch-slot {
+            background-image: repeating-linear-gradient(45deg, #f1f5f9, #f1f5f9 10px, #f8fafc 10px, #f8fafc 20px);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #e2e8f0;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 flex h-screen overflow-hidden">
+<!-- Sidebar fixa à esquerda -->
+<aside class="w-64 bg-sidebar-navy text-white flex flex-col shrink-0">
+<div class="p-6 flex items-center gap-3">
+<div class="size-10 rounded-full bg-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-2xl">auto_awesome</span>
+</div>
+<div>
+<h1 class="text-base font-bold leading-tight">Beleza Pro</h1>
+<p class="text-slate-400 text-xs font-normal">Gestão de Estética</p>
+</div>
+</div>
+<nav class="flex-1 px-4 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-white/10 hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="text-sm font-medium">Início</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-white/10 hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="text-sm font-medium">Clientes</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary text-white" href="#">
+<span class="material-symbols-outlined">calendar_today</span>
+<span class="text-sm font-medium">Agenda</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-white/10 hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined">content_cut</span>
+<span class="text-sm font-medium">Serviços</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-white/10 hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined">payments</span>
+<span class="text-sm font-medium">Cobranças</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-white/10 hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-sm font-medium">Configurações</span>
+</a>
+</nav>
+<div class="p-4 border-t border-white/10">
+<div class="flex items-center gap-3 px-2 py-3 rounded-lg hover:bg-white/5 cursor-pointer">
+<div class="size-8 rounded-full bg-slate-500 overflow-hidden">
+<img alt="Avatar do usuário" data-alt="Foto de perfil do administrador" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC8nq6atCN8RdZAOlkhs_S8UqKi1F16Byg3S6EexuPjorHEqmU1W6arak0AXHAMT83pXoMwIIsLt-WaC1nDyd-5Keua9AuXC52c_JVjtR-FXdeeI80L7DjPO6s3gFerJJmLt4NgceGFIgIgGB5uH5QcpM38kRnQQ6JzDeV0pCYgXjhSVV4nY-LL9kItEY4PNYyXCtqQNTgtpiyw0vTjFwFMbRoPMTevpno9elsZ_-y_fKKzRPvdw2Dk6O3HNFcT8k16ta5mGOJG5VMJ"/>
+</div>
+<div class="overflow-hidden">
+<p class="text-xs font-bold truncate">Mariana Costa</p>
+<p class="text-[10px] text-slate-400">Plano Pro</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- Área de Conteúdo Principal -->
+<main class="flex-1 flex flex-col min-w-0 bg-white dark:bg-background-dark">
+<!-- Header -->
+<header class="h-16 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 shrink-0">
+<div class="flex items-center gap-6">
+<h2 class="text-xl font-bold text-slate-900 dark:text-slate-100">Agenda</h2>
+<div class="flex items-center gap-4">
+<button class="text-slate-500 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">chevron_left</span>
+</button>
+<span class="text-sm font-bold text-slate-700 dark:text-slate-300">Março 2026</span>
+<button class="text-slate-500 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+<button class="px-4 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-200">
+                    Hoje
+                </button>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+<button class="px-4 py-1.5 rounded text-xs font-bold text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-700 shadow-sm">Semana</button>
+<button class="px-4 py-1.5 rounded text-xs font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">Dia</button>
+<button class="px-4 py-1.5 rounded text-xs font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">Mês</button>
+</div>
+<button class="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-sm font-bold hover:brightness-110 transition-all shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-sm">add</span>
+                    Novo Agendamento
+                </button>
+</div>
+</header>
+<!-- Grade da Agenda -->
+<div class="flex flex-1 overflow-hidden">
+<div class="flex-1 flex flex-col overflow-auto custom-scrollbar">
+<!-- Cabeçalho da Semana -->
+<div class="grid grid-cols-[80px_1fr] sticky top-0 bg-white dark:bg-background-dark z-10 border-b border-slate-200 dark:border-slate-800">
+<div class="border-r border-slate-200 dark:border-slate-800"></div>
+<div class="grid grid-cols-7 divide-x divide-slate-200 dark:divide-slate-800">
+<div class="py-3 flex flex-col items-center">
+<span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Seg</span>
+<span class="text-lg font-bold">10</span>
+</div>
+<div class="py-3 flex flex-col items-center">
+<span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Ter</span>
+<span class="text-lg font-bold">11</span>
+</div>
+<div class="py-3 flex flex-col items-center">
+<span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Qua</span>
+<span class="text-lg font-bold">12</span>
+</div>
+<div class="py-3 flex flex-col items-center">
+<span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Qui</span>
+<span class="text-lg font-bold">13</span>
+</div>
+<div class="py-3 flex flex-col items-center">
+<span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sex</span>
+<span class="text-lg font-bold">14</span>
+</div>
+<div class="py-3 flex flex-col items-center relative">
+<span class="text-[10px] font-bold text-primary uppercase tracking-wider">Sáb</span>
+<span class="size-8 rounded-full bg-primary text-white flex items-center justify-center font-bold text-lg">15</span>
+</div>
+<div class="py-3 flex flex-col items-center">
+<span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Dom</span>
+<span class="text-lg font-bold">16</span>
+</div>
+</div>
+</div>
+<!-- Grid de Horários -->
+<div class="grid grid-cols-[80px_1fr] relative">
+<!-- Eixo de Tempo -->
+<div class="flex flex-col border-r border-slate-200 dark:border-slate-800">
+<div class="h-16 flex items-center justify-center text-[10px] font-bold text-slate-400 border-b border-slate-100 dark:border-slate-800">08:00</div>
+<div class="h-16 flex items-center justify-center text-[10px] font-bold text-slate-400 border-b border-slate-100 dark:border-slate-800">09:00</div>
+<div class="h-16 flex items-center justify-center text-[10px] font-bold text-slate-400 border-b border-slate-100 dark:border-slate-800">10:00</div>
+<div class="h-16 flex items-center justify-center text-[10px] font-bold text-slate-400 border-b border-slate-100 dark:border-slate-800">11:00</div>
+<div class="h-16 flex items-center justify-center text-[10px] font-bold text-slate-400 border-b border-slate-100 dark:border-slate-800">12:00</div>
+<div class="h-16 flex items-center justify-center text-[10px] font-bold text-slate-400 border-b border-slate-100 dark:border-slate-800">13:00</div>
+<div class="h-16 flex items-center justify-center text-[10px] font-bold text-slate-400 border-b border-slate-100 dark:border-slate-800">14:00</div>
+<div class="h-16 flex items-center justify-center text-[10px] font-bold text-slate-400 border-b border-slate-100 dark:border-slate-800">15:00</div>
+<div class="h-16 flex items-center justify-center text-[10px] font-bold text-slate-400 border-b border-slate-100 dark:border-slate-800">16:00</div>
+<div class="h-16 flex items-center justify-center text-[10px] font-bold text-slate-400 border-b border-slate-100 dark:border-slate-800">17:00</div>
+<div class="h-16 flex items-center justify-center text-[10px] font-bold text-slate-400 border-b border-slate-100 dark:border-slate-800">18:00</div>
+<div class="h-16 flex items-center justify-center text-[10px] font-bold text-slate-400 border-b border-slate-100 dark:border-slate-800">19:00</div>
+<div class="h-16 flex items-center justify-center text-[10px] font-bold text-slate-400">20:00</div>
+</div>
+<!-- Colunas de Agendamentos -->
+<div class="grid grid-cols-7 divide-x divide-slate-100 dark:divide-slate-800 relative">
+<!-- Seg -->
+<div class="relative min-h-[832px]">
+<!-- Ana Silva -->
+<div class="absolute top-[64px] left-1 right-1 h-16 bg-primary/20 border-l-4 border-primary rounded-lg p-1.5 overflow-hidden">
+<p class="text-[10px] font-bold text-primary">09:00 - 10:00</p>
+<p class="text-[11px] font-bold text-slate-900 truncate">Ana Silva</p>
+<p class="text-[10px] text-slate-600 truncate">Manicure</p>
+</div>
+<!-- Fernanda Costa -->
+<div class="absolute top-[384px] left-1 right-1 h-16 bg-primary/20 border-l-4 border-primary rounded-lg p-1.5 overflow-hidden">
+<p class="text-[10px] font-bold text-primary">14:00 - 15:00</p>
+<p class="text-[11px] font-bold text-slate-900 truncate">Fernanda Costa</p>
+<p class="text-[10px] text-slate-600 truncate">Pedicure</p>
+</div>
+</div>
+<!-- Ter -->
+<div class="relative">
+<!-- Juliana Mendes (2h) -->
+<div class="absolute top-[128px] left-1 right-1 h-32 bg-primary/20 border-l-4 border-primary rounded-lg p-1.5 overflow-hidden">
+<p class="text-[10px] font-bold text-primary">10:00 - 12:00</p>
+<p class="text-[11px] font-bold text-slate-900 truncate">Juliana Mendes</p>
+<p class="text-[10px] text-slate-600 truncate">Unhas em Gel</p>
+</div>
+</div>
+<!-- Qua -->
+<div class="relative">
+<!-- Camila Oliveira -->
+<div class="absolute top-[96px] left-1 right-1 h-16 bg-primary/20 border-l-4 border-primary rounded-lg p-1.5 overflow-hidden">
+<p class="text-[10px] font-bold text-primary">09:30 - 10:30</p>
+<p class="text-[11px] font-bold text-slate-900 truncate">Camila Oliveira</p>
+<p class="text-[10px] text-slate-600 truncate">Manicure</p>
+</div>
+</div>
+<!-- Qui -->
+<div class="relative">
+<!-- Beatriz Santos (30min) -->
+<div class="absolute top-[448px] left-1 right-1 h-8 bg-primary/20 border-l-4 border-primary rounded-lg p-1 flex flex-col justify-center overflow-hidden">
+<p class="text-[9px] font-bold text-primary leading-tight">15:00 - 15:30</p>
+<p class="text-[10px] font-bold text-slate-900 truncate leading-tight">Beatriz Santos</p>
+</div>
+</div>
+<!-- Sex -->
+<div class="relative">
+<!-- Larissa Ferreira (45min) -->
+<div class="absolute top-[192px] left-1 right-1 h-12 bg-primary/20 border-l-4 border-primary rounded-lg p-1 overflow-hidden">
+<p class="text-[10px] font-bold text-primary">11:00 - 11:45</p>
+<p class="text-[11px] font-bold text-slate-900 truncate">Larissa Ferreira</p>
+<p class="text-[9px] text-slate-600 truncate">Esmaltação em Gel</p>
+</div>
+</div>
+<!-- Sáb -->
+<div class="relative">
+<!-- Ana Silva (Confirmado) -->
+<div class="absolute top-[64px] left-1 right-1 h-16 bg-emerald-100 border-l-4 border-emerald-500 rounded-lg p-1.5 overflow-hidden">
+<div class="flex items-center justify-between">
+<p class="text-[10px] font-bold text-emerald-700">09:00 - 10:00</p>
+<span class="material-symbols-outlined text-[12px] text-emerald-600">check_circle</span>
+</div>
+<p class="text-[11px] font-bold text-slate-900 truncate">Ana Silva</p>
+<p class="text-[10px] text-slate-600 truncate">Pedicure</p>
+</div>
+<!-- Gabriela Lima -->
+<div class="absolute top-[160px] left-1 right-1 h-16 bg-primary/20 border-l-4 border-primary rounded-lg p-1.5 overflow-hidden">
+<p class="text-[10px] font-bold text-primary">10:30 - 11:30</p>
+<p class="text-[11px] font-bold text-slate-900 truncate">Gabriela Lima</p>
+<p class="text-[10px] text-slate-600 truncate">Manicure</p>
+</div>
+</div>
+<!-- Dom -->
+<div class="relative"></div>
+<!-- Overlay de Almoço para todos os dias -->
+<div class="absolute top-[256px] left-0 right-0 h-16 lunch-slot z-[1] flex items-center justify-center opacity-70 pointer-events-none">
+<span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Almoço</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Sidebar Direita (Mini Calendário) -->
+<aside class="w-72 border-l border-slate-200 dark:border-slate-800 p-6 space-y-8 bg-slate-50 dark:bg-slate-900/50">
+<!-- Mini Calendário -->
+<div>
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-sm font-bold">Março 2026</h3>
+<div class="flex gap-2">
+<button class="material-symbols-outlined text-sm text-slate-400 hover:text-primary">chevron_left</button>
+<button class="material-symbols-outlined text-sm text-slate-400 hover:text-primary">chevron_right</button>
+</div>
+</div>
+<div class="grid grid-cols-7 text-center text-[10px] mb-2 font-bold text-slate-400">
+<span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span>
+</div>
+<div class="grid grid-cols-7 gap-y-1 text-center text-xs">
+<span class="p-2 text-slate-300">1</span>
+<span class="p-2">2</span>
+<span class="p-2">3</span>
+<span class="p-2">4</span>
+<span class="p-2">5</span>
+<span class="p-2">6</span>
+<span class="p-2">7</span>
+<span class="p-2">8</span>
+<span class="p-2">9</span>
+<span class="p-2 bg-slate-200 dark:bg-slate-800 rounded">10</span>
+<span class="p-2">11</span>
+<span class="p-2">12</span>
+<span class="p-2">13</span>
+<span class="p-2">14</span>
+<span class="p-2 bg-primary text-white font-bold rounded">15</span>
+<span class="p-2">16</span>
+<span class="p-2">17</span>
+<span class="p-2">18</span>
+<span class="p-2">19</span>
+<span class="p-2">20</span>
+<span class="p-2">21</span>
+<span class="p-2">22</span>
+<span class="p-2">23</span>
+<span class="p-2">24</span>
+<span class="p-2">25</span>
+<span class="p-2">26</span>
+<span class="p-2">27</span>
+<span class="p-2">28</span>
+<span class="p-2">29</span>
+<span class="p-2">30</span>
+<span class="p-2">31</span>
+</div>
+</div>
+<!-- Legenda -->
+<div class="space-y-4">
+<h3 class="text-xs font-bold uppercase text-slate-400 tracking-wider">Status</h3>
+<div class="space-y-3">
+<div class="flex items-center gap-3">
+<span class="size-2 rounded-full bg-primary"></span>
+<span class="text-xs font-medium text-slate-600 dark:text-slate-400">Agendado</span>
+</div>
+<div class="flex items-center gap-3">
+<span class="size-2 rounded-full bg-emerald-500"></span>
+<span class="text-xs font-medium text-slate-600 dark:text-slate-400">Confirmado</span>
+</div>
+<div class="flex items-center gap-3">
+<span class="size-2 rounded-full bg-slate-300 dark:bg-slate-700"></span>
+<span class="text-xs font-medium text-slate-600 dark:text-slate-400">Concluído</span>
+</div>
+</div>
+</div>
+<!-- Resumo do Dia -->
+<div class="p-4 rounded-xl bg-primary/5 border border-primary/10">
+<h4 class="text-xs font-bold text-primary mb-2">Hoje: Sáb 15 de Março</h4>
+<p class="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                        Você possui <span class="font-bold">8 atendimentos</span> agendados para hoje. Primeiro atendimento às 09:00.
+                    </p>
+</div>
+</aside>
+</div>
+</main>
+</body></html>

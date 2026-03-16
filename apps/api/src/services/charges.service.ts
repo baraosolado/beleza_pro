@@ -1,7 +1,5 @@
 import type { ChargeStatus } from '@prisma/client';
 import { prisma } from '../db/prisma/client.js';
-
-import { createPaymentIntent, getStripe, retrievePaymentIntent } from '../integrations/stripe.js';
 import { addWhatsAppJob } from '../jobs/queue.js';
 
 type ServiceResult<T> =
@@ -14,6 +12,13 @@ type CreateInput = {
   amount: number;
   description?: string;
   dueDate: Date;
+};
+
+type UpdateInput = {
+  amount?: number;
+  description?: string;
+  dueDate?: Date;
+  status?: ChargeStatus;
 };
 
 type ListQuery = {
@@ -36,19 +41,44 @@ export async function list(
   const where: {
     userId: string;
     status?: ChargeStatus;
-    dueDate?: { gte?: Date; lte?: Date };
+    dueDate?: { gte?: Date; lte?: Date; lt?: Date };
   } = { userId };
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
   if (query.status && validStatuses.includes(query.status as ChargeStatus)) {
-    where.status = query.status as ChargeStatus;
+    const status = query.status as ChargeStatus;
+
+    if (status === 'overdue') {
+      // "Inadimplente": cobranças pendentes já vencidas
+      where.status = 'pending';
+      where.dueDate = { ...(where.dueDate ?? {}), lt: today };
+    } else if (status === 'pending') {
+      // "Pendente": cobranças pendentes que ainda não venceram hoje
+      where.status = 'pending';
+      const existingRange = where.dueDate ?? {};
+      const gte = existingRange.gte && existingRange.gte > today ? existingRange.gte : today;
+      where.dueDate = { ...existingRange, gte };
+    } else {
+      where.status = status;
+    }
   }
   if (query.startDate) {
     const d = new Date(query.startDate);
-    if (!Number.isNaN(d.getTime())) where.dueDate = { ...where.dueDate, gte: d };
+    if (!Number.isNaN(d.getTime())) {
+      const existing = where.dueDate ?? {};
+      const gte = existing.gte && existing.gte > d ? existing.gte : d;
+      where.dueDate = { ...existing, gte };
+    }
   }
   if (query.endDate) {
     const d = new Date(query.endDate);
-    if (!Number.isNaN(d.getTime())) where.dueDate = { ...where.dueDate, lte: d };
+    if (!Number.isNaN(d.getTime())) {
+      const existing = where.dueDate ?? {};
+      const lte = existing.lte && existing.lte < d ? existing.lte : d;
+      where.dueDate = { ...existing, lte };
+    }
   }
 
   const [items, total] = await Promise.all([
@@ -82,24 +112,6 @@ export async function create(
   });
   if (!client) return { error: 'Cliente não encontrado', code: 'NOT_FOUND', statusCode: 404 };
 
-  const stripe = getStripe();
-  if (!stripe) {
-    return { error: 'Pagamentos não configurados', code: 'STRIPE_NOT_CONFIGURED', statusCode: 503 };
-  }
-
-  const paymentIntent = await createPaymentIntent({
-    amount: input.amount,
-    currency: 'brl',
-    metadata: {
-      userId,
-      clientId: input.clientId,
-      ...(input.appointmentId && { appointmentId: input.appointmentId }),
-    },
-  });
-  if (!paymentIntent) {
-    return { error: 'Falha ao criar cobrança', code: 'STRIPE_ERROR', statusCode: 503 };
-  }
-
   const charge = await prisma.charge.create({
     data: {
       userId,
@@ -108,7 +120,7 @@ export async function create(
       amount: input.amount,
       description: input.description,
       dueDate: input.dueDate,
-      stripePaymentIntentId: paymentIntent.id,
+      stripePaymentIntentId: null,
       stripePixQrcode: null,
       stripePixCopyPaste: null,
     },
@@ -141,6 +153,29 @@ export async function getById(
     include: { client: true, appointment: true },
   });
   if (!charge) return { error: 'Cobrança não encontrada', code: 'NOT_FOUND', statusCode: 404 };
+  return { data: charge };
+}
+
+export async function update(
+  userId: string,
+  id: string,
+  input: UpdateInput
+): Promise<ServiceResult<unknown>> {
+  const existing = await prisma.charge.findFirst({
+    where: { id, userId },
+  });
+  if (!existing) return { error: 'Cobrança não encontrada', code: 'NOT_FOUND', statusCode: 404 };
+
+  const charge = await prisma.charge.update({
+    where: { id },
+    data: {
+      amount: input.amount ?? existing.amount,
+      description: input.description ?? existing.description,
+      dueDate: input.dueDate ?? existing.dueDate,
+      status: input.status ?? existing.status,
+    },
+  });
+
   return { data: charge };
 }
 
@@ -181,4 +216,16 @@ export async function getPaymentLink(
     return { error: 'Link de pagamento indisponível', code: 'PAYMENT_LINK_UNAVAILABLE', statusCode: 503 };
   }
   return { data: { clientSecret: pi.client_secret } };
+}
+
+export async function remove(userId: string, id: string): Promise<ServiceResult<null>> {
+  const existing = await prisma.charge.findFirst({
+    where: { id, userId },
+  });
+  if (!existing) {
+    return { error: 'Cobrança não encontrada', code: 'NOT_FOUND', statusCode: 404 };
+  }
+
+  await prisma.charge.delete({ where: { id } });
+  return { data: null };
 }
