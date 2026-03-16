@@ -15,14 +15,13 @@ RUN npm run db:generate
 RUN npm run build:api
 
 # Stage 3: runner
-FROM node:20-alpine AS runner
+# Usamos imagem Debian (node:20) em vez de alpine para garantir
+# as dependências nativas necessárias do Prisma/OpenSSL.
+FROM node:20 AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 
-RUN apk add --no-cache openssl1.1-compat openssl
-
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 fastify
+RUN useradd -m -u 1001 fastify
 USER fastify
 
 COPY --from=builder --chown=fastify:nodejs /app/apps/api/dist ./dist
