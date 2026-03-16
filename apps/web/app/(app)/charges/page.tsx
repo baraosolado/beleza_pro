@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { format, subMonths } from 'date-fns';
 import { CreditCard, MessageCircle } from 'lucide-react';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { type Resolver, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 
@@ -79,7 +79,7 @@ export default function ChargesPage() {
     reset,
     formState: { errors },
   } = useForm<NewChargeFormData>({
-    resolver: zodResolver(newChargeSchema),
+    resolver: zodResolver(newChargeSchema) as Resolver<NewChargeFormData>,
     defaultValues: {
       dueDate: format(new Date(), 'yyyy-MM-dd'),
     },

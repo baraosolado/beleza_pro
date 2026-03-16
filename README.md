@@ -102,6 +102,41 @@ O worker de lembretes (BullMQ) dispara 24h antes do horário → verifica se o a
 - **uazapi** utiliza integração não oficial com o WhatsApp; há risco de banimento do número. Recomenda-se usar número secundário para testes e produção.
 - Limite de 30 mensagens por hora por instância (rate limit no worker) para reduzir risco de bloqueio.
 
+## Avisos de dependências (deprecated)
+
+No `npm install` ou no build Docker podem aparecer avisos de pacotes deprecated (rimraf, glob, eslint@8, etc.). A maioria vem de dependências transitivas do Next.js 14 e do ESLint 8. Para eliminá-los seria necessário migrar para Next.js 15 e ESLint 9; até lá os avisos não impedem o build nem o funcionamento. Mantenha as dependências atualizadas com `npm update` para receber patches dentro da mesma versão major.
+
+## Deploy (Easypanel / Docker)
+
+O repositório tem **dois Dockerfiles**: um na raiz (frontend) e um em `apps/api/` (backend). Em painéis como o Easypanel você usa **dois serviços** apontando para o **mesmo repositório**, cada um com seu Dockerfile.
+
+### Frontend (Next.js)
+
+- **Dockerfile:** na raiz do repositório (`Dockerfile`).
+- No Easypanel: crie o serviço do front, conecte o repositório; o build usa o `Dockerfile` da raiz por padrão.
+- **Build args** (se o painel permitir): `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (para o build do Next.js).
+- **Porta:** 3000.
+
+### Backend (API Fastify)
+
+- **Dockerfile:** `apps/api/Dockerfile` (não o da raiz).
+- No Easypanel: crie **outro serviço** para a API, mesmo repositório, e configure:
+  - **Caminho do Dockerfile:** `apps/api/Dockerfile`
+  - **Contexto de build:** raiz do repositório (`.`)
+- Ao subir, o container roda `entrypoint.sh`: executa `prisma migrate deploy` e depois inicia o servidor na porta 3001.
+- **Variáveis de ambiente obrigatórias:** `DATABASE_URL`, `REDIS_URL`, `JWT_SECRET`, `JWT_REFRESH_SECRET`. As demais seguem o `.env.example`.
+- **Dependências:** PostgreSQL e Redis precisam existir antes (outros serviços no painel ou externos). A API expõe `GET /health` (sem auth) para healthcheck.
+- **Porta:** 3001.
+
+### Resumo
+
+| Serviço   | Dockerfile            | Porta |
+| --------- | --------------------- | ----- |
+| Frontend  | `Dockerfile` (raiz)   | 3000  |
+| Backend   | `apps/api/Dockerfile` | 3001  |
+
+No front, configure `NEXT_PUBLIC_API_URL` com a URL pública da API (ex.: `https://sua-api.exemplo.com/api`) para o browser conseguir chamar o backend.
+
 ## Scripts úteis
 
 | Comando | Descrição |
