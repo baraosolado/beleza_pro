@@ -1,0 +1,26 @@
+{
+  "name": "beleza-pro",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev -w api\" \"npm run dev -w web\"",
+    "dev:api": "npm run dev -w api",
+    "dev:web": "npm run dev -w web",
+    "build": "npm run build -w types && npm run build -w api && npm run build -w web",
+    "build:api": "npm run build -w types && npm run build -w api",
+    "build:web": "npm run build -w types && npm run build -w web",
+    "db:generate": "npm run db:generate -w api",
+    "db:migrate": "dotenv -e .env -- npm exec -w api -- prisma migrate dev --schema=src/db/prisma/schema.prisma",
+    "db:studio": "dotenv -e .env -- npm exec -w api -- prisma studio --schema=src/db/prisma/schema.prisma"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "dotenv-cli": "^7.4.2"
+  }
+}

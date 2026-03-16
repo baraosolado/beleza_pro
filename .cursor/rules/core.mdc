@@ -1,0 +1,84 @@
+---
+alwaysApply: true
+---
+description: Regras principais do projeto Beleza Pro — sempre aplicadas
+
+# Beleza Pro — Core Rules
+
+## IDENTIDADE DO PROJETO
+SaaS de gestão para profissionais de beleza autônomos no Brasil.
+Stack: Next.js 14 · Node.js · Fastify · PostgreSQL · Prisma · uazapi · Stripe · BullMQ · Redis · Tailwind CSS
+
+## COMPORTAMENTO DO AGENTE
+- Leia os arquivos relevantes ANTES de agir. Nunca assuma o conteúdo.
+- Faça a menor mudança possível para resolver o problema.
+- Não concorde automaticamente. Se o pedido estiver errado, diga antes de implementar.
+- Nunca quebre código existente sem avisar explicitamente.
+- Não adicione dependências novas sem aprovação explícita.
+- Ao terminar, liste o que foi feito e o que ainda falta.
+- PERIODICAMENTE releia este arquivo em conversas longas para manter conformidade.
+
+## PADRÕES DE CÓDIGO
+- TypeScript estrito. Zero `any`. Tipar tudo.
+- Sem comentários no código — escreva código autoexplicativo.
+- Imports em ordem alfabética.
+- Arquivos abaixo de 300 linhas. Dividir quando melhorar clareza.
+- Princípios SOLID, mas sem over-engineering. Separação de responsabilidades.
+- Guard clauses para erros — early return. Happy path por último.
+- Nomes de variáveis em inglês. Mensagens de usuário em PT-BR.
+
+## BANCO DE DADOS
+- NUNCA usar SQL raw. Sempre Prisma ORM.
+- NUNCA concatenar strings para montar queries.
+- SEMPRE usar parâmetros tipados.
+- NUNCA alterar schema.prisma sem avisar — impacta migrations em produção.
+- Toda query deve filtrar por `userId` (isolamento multi-tenant obrigatório).
+
+## SEGURANÇA
+- NUNCA hardcodar secrets, API keys ou tokens no código.
+- SEMPRE usar variáveis de ambiente para credenciais.
+- NUNCA logar dados sensíveis, tokens de sessão ou informações de clientes.
+- SEMPRE validar e sanitizar inputs do usuário.
+- Senhas: hash com Argon2 obrigatoriamente.
+- JWT: access token (15min) + refresh token (7d).
+
+## REGRAS DE NEGÓCIO CRÍTICAS — NÃO ALTERAR SEM DISCUSSÃO
+- multi-tenant: TODOS os dados isolados por `userId`
+- Plano Basic: máx 100 clientes por usuário
+- Plano Pro: cobrança Pix via Stripe habilitada
+- Trial: 14 dias com acesso Pro completo
+- uazapi: máximo 30 mensagens/hora por instância (risco de banimento)
+- Agendamentos: não podem se sobrepor — validar com duração do serviço
+- Cancelamento de agendamento: cancelar cobrança pendente no Stripe automaticamente
+
+## INTEGRAÇÕES SENSÍVEIS
+- uazapi: rate limit de 30 msg/hora. Nunca bypassar.
+- Stripe webhook: processar idempotentemente (pode chegar duplicado).
+- BullMQ: jobs com retry máximo 3x e backoff exponencial.
+
+## ESTRUTURA DE PASTAS
+apps/web/       → Next.js 14 (frontend, App Router)
+apps/api/       → Fastify (backend REST)
+  src/
+    routes/     → definição de rotas
+    controllers/→ lógica HTTP
+    services/   → lógica de negócio (aqui fica o grosso)
+    jobs/       → workers BullMQ
+    integrations/
+      stripe.ts → wrapper da API Stripe
+      uazapi.ts → wrapper da API uazapi
+    middleware/ → auth, plano, rate limit
+    db/prisma/  → schema e client
+packages/types/ → tipos TypeScript compartilhados
+
+## ERROS E LOGGING
+- Nunca deixar catch vazio.
+- Logar erros com contexto (userId, rota, payload — sem dados sensíveis).
+- Retornar erros estruturados: { error: string, code: string }.
+- HTTP status codes semânticos: 400 input, 401 auth, 403 plano, 404 não encontrado, 500 servidor.
+
+## TESTES
+- Testes para caminhos críticos: auth, cobrança, agendamento.
+- Padrão AAA (Arrange, Act, Assert) com comentários.
+- Não testar implementação, testar comportamento.
+EOF
