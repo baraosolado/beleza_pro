@@ -2,10 +2,11 @@
 
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { MessageCircle, Search, Users } from 'lucide-react';
 
 import { Badge, Button, Card, Input, Skeleton } from '@/components/ui';
+import { NewClientModal } from '@/components/clients/NewClientModal';
 import { Header } from '@/components/layout/Header';
 import { api } from '@/lib/api';
 import { cn, formatCurrency } from '@/lib/utils';
@@ -24,6 +25,9 @@ export default function ClientsPage() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [filter, setFilter] = useState<'all' | 'active' | 'new'>('all');
+  const [newClientOpen, setNewClientOpen] = useState(false);
+
+  const openNewClient = useCallback(() => setNewClientOpen(true), []);
 
   const { data, isLoading } = useQuery({
     queryKey: ['clients', 'list', search, page, filter],
@@ -82,11 +86,12 @@ export default function ClientsPage() {
 
   return (
     <>
+      <NewClientModal open={newClientOpen} onOpenChange={setNewClientOpen} />
       <Header
         title="Clientes"
         subtitle={`${total} cliente${total !== 1 ? 's' : ''}`}
         actionLabel="Nova Cliente"
-        onAction={() => window.location.assign('/clients/new')}
+        onAction={openNewClient}
       />
       <main className="flex-1 overflow-auto p-8">
         {/* Filtros, busca e ordenação */}
@@ -151,7 +156,7 @@ export default function ClientsPage() {
                 </thead>
                 <tbody>
                   {[1, 2, 3, 4, 5].map((i) => (
-                    <tr key={i} className="border-t border-slate-100">
+                    <tr key={i} className="border-t border-border/60">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <Skeleton className="size-9 rounded-full" />
@@ -187,11 +192,14 @@ export default function ClientsPage() {
               <p className="mt-2 font-medium text-slate-600">
                 Nenhum cliente encontrado
               </p>
-              <Link href="/clients/new">
-                <Button variant="outline" className="mt-4">
-                  Nova Cliente
-                </Button>
-              </Link>
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-4"
+                onClick={openNewClient}
+              >
+                Nova Cliente
+              </Button>
             </div>
           ) : (
             <>
@@ -207,7 +215,7 @@ export default function ClientsPage() {
                       <th className="px-6 py-4 text-center">Ações</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-border/60">
                     {items.map((client) => (
                       <tr
                         key={client.id}
@@ -258,9 +266,8 @@ export default function ClientsPage() {
                           <Link href={`/clients/${client.id}`}>
                             <Button
                               type="button"
-                              size="sm"
                               variant="ghost"
-                              className="px-0 text-sm font-semibold text-primary hover:text-primary hover:bg-transparent"
+                              className="h-auto px-0 py-1 text-sm font-semibold text-primary hover:bg-transparent hover:text-primary-hover"
                             >
                               Ver
                             </Button>
@@ -271,7 +278,7 @@ export default function ClientsPage() {
                   </tbody>
                 </table>
               </div>
-              <div className="flex flex-wrap items-center justify-between gap-4 border-t border-slate-100 px-6 py-4">
+              <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border/60 px-6 py-4">
                 <p className="text-sm text-slate-500">
                   Exibindo {from}–{to} de {total} clientes
                 </p>

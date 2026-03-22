@@ -1,10 +1,11 @@
 'use client';
 
-import { getISOWeek, getISOWeekYear } from 'date-fns';
+import { format, getISOWeek, getISOWeekYear } from 'date-fns';
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+import { NewAppointmentModal } from '@/components/appointments/NewAppointmentModal';
 import { WeeklyCalendar } from '@/components/ui';
 import type { CalendarAppointment } from '@/components/ui';
 import { api } from '@/lib/api';
@@ -19,6 +20,9 @@ export default function SchedulePage() {
   const router = useRouter();
   const [currentDate, setCurrentDate] = useState(() => new Date());
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('week');
+  const [newAppointmentOpen, setNewAppointmentOpen] = useState(false);
+
+  const openNewAppointment = useCallback(() => setNewAppointmentOpen(true), []);
 
   const weekParam = formatWeek(currentDate);
 
@@ -59,13 +63,18 @@ export default function SchedulePage() {
 
   return (
     <main className="flex flex-1 flex-col overflow-hidden">
+      <NewAppointmentModal
+        open={newAppointmentOpen}
+        onOpenChange={setNewAppointmentOpen}
+        defaultDate={format(currentDate, 'yyyy-MM-dd')}
+      />
       <WeeklyCalendar
         appointments={appointments}
         currentDate={currentDate}
         onDateChange={setCurrentDate}
         onViewChange={setViewMode}
         onAppointmentClick={(apt) => router.push(`/schedule/${apt.id}`)}
-        onNewAppointment={() => router.push('/schedule/new')}
+        onNewAppointment={openNewAppointment}
         viewMode={viewMode}
       />
     </main>

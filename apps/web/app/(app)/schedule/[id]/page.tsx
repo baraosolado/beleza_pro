@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { CalendarDays, Pencil, User } from 'lucide-react';
+import { CalendarDays, CheckCircle, Pencil, User } from 'lucide-react';
 import { useState } from 'react';
 
 import { Badge, Button, Card, Skeleton } from '@/components/ui';
@@ -33,6 +33,24 @@ export default function AppointmentDetailPage() {
     queryFn: () =>
       api.get<AppointmentDetail>(`/appointments/${id}`).then((r) => r.data),
     enabled: !!id,
+  });
+
+  const confirmMutation = useMutation({
+    mutationFn: () =>
+      api.patch(`/appointments/${id}/status`, { status: 'confirmed' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['appointments'] });
+      queryClient.invalidateQueries({ queryKey: ['appointments', id] });
+      setToast({ type: 'success', message: 'Presença confirmada.' });
+    },
+    onError: (err: unknown) => {
+      const message =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { error?: string } } }).response?.data
+              ?.error ?? 'Erro ao confirmar'
+          : 'Erro ao confirmar';
+      setToast({ type: 'error', message });
+    },
   });
 
   const cancelMutation = useMutation({
@@ -92,6 +110,7 @@ export default function AppointmentDetailPage() {
   }
 
   const scheduledAt = new Date(appointment.scheduledAt);
+  const canConfirm = appointment.status === 'scheduled';
   const canCancel =
     appointment.status === 'scheduled' || appointment.status === 'confirmed';
 
@@ -179,6 +198,17 @@ export default function AppointmentDetailPage() {
             )}
 
             <div className="mt-6 flex flex-wrap gap-3 border-t border-slate-100 pt-6">
+              {canConfirm && (
+                <Button
+                  type="button"
+                  className="bg-emerald-600 text-white hover:bg-emerald-700"
+                  onClick={() => confirmMutation.mutate()}
+                  isLoading={confirmMutation.isPending}
+                >
+                  <CheckCircle className="mr-2 size-4" />
+                  Confirmar presença
+                </Button>
+              )}
               <Link href={`/schedule/new?clientId=${appointment.client.id}`}>
                 <Button type="button" variant="outline">
                   <Pencil className="mr-2 size-4" />

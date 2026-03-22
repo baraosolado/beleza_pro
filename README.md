@@ -92,6 +92,8 @@ O worker de lembretes (BullMQ) dispara 24h antes do horário → verifica se o a
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Não | Chave pública do Stripe (frontend) |
 | `UAZAPI_BASE_URL` | Não | URL base do uazapi (ex.: `http://localhost:8080`) |
 | `UAZAPI_TOKEN` | Não | Token do uazapi |
+| `N8N_INVOICE_PREVIEW_WEBHOOK_URL` | Não | URL do webhook n8n para gerar pré-visualização do PDF da conta |
+| `N8N_INVOICE_SEND_WEBHOOK_URL` | Não | URL do webhook n8n para enviar a conta por WhatsApp |
 | `REDIS_URL` | Sim | URL do Redis (ex.: `redis://localhost:6379`) |
 | `NEXT_PUBLIC_API_URL` | Não | URL base da API para o frontend (ex.: `http://localhost:3001/api`) |
 | `APP_URL` | Não | URL do frontend (ex.: `http://localhost:3000`) |

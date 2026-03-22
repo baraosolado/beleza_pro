@@ -3,11 +3,21 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import {
+  Award,
   Bell,
+  Camera,
+  ChevronRight,
   Clock,
   CreditCard,
+  Download,
   Lock,
+  MapPin,
   MessageCircle,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  Receipt,
+  Store,
   User,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -19,11 +29,19 @@ import { Button, Card, Input } from '@/components/ui';
 import { Header } from '@/components/layout/Header';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 const profileSchema = z.object({
   name: z.string().min(1, 'Nome obrigatório'),
   phone: z.string().optional(),
   businessName: z.string().optional(),
+  businessCategory: z.string().optional(),
+  businessInstagram: z.string().optional(),
+  businessEmail: z.string().email().optional().or(z.literal('')),
+  businessPhone: z.string().optional(),
+  businessPixKey: z.string().optional(),
+  businessAddress: z.string().optional(),
 });
 
 const securitySchema = z
@@ -128,15 +146,40 @@ type Settings = {
   phone: string | null;
   plan: string;
   businessName: string | null;
+  businessCategory?: string | null;
+  businessInstagram?: string | null;
+  businessEmail?: string | null;
+  businessPhone?: string | null;
+  businessPixKey?: string | null;
+  businessAddress?: string | null;
   workingHours?: Record<string, { start: string; end: string } | null>;
+  createdAt?: string;
+};
+
+const PLAN_LABELS: Record<string, { name: string; price: string; description: string }> = {
+  trial: {
+    name: 'Plano Trial',
+    price: 'R$ 0',
+    description: 'Teste gratuito com funcionalidades essenciais por tempo limitado.',
+  },
+  basic: {
+    name: 'Plano Basic',
+    price: 'R$ 29,90',
+    description: 'Ideal para começar: agenda, clientes e cobranças básicas.',
+  },
+  pro: {
+    name: 'Plano Pro',
+    price: 'R$ 49,90',
+    description: 'Ideal para salões em crescimento com até 5 profissionais.',
+  },
 };
 
 const DAYS = [
-  { key: 'monday', label: 'Segunda' },
-  { key: 'tuesday', label: 'Terça' },
-  { key: 'wednesday', label: 'Quarta' },
-  { key: 'thursday', label: 'Quinta' },
-  { key: 'friday', label: 'Sexta' },
+  { key: 'monday', label: 'Segunda-feira' },
+  { key: 'tuesday', label: 'Terça-feira' },
+  { key: 'wednesday', label: 'Quarta-feira' },
+  { key: 'thursday', label: 'Quinta-feira' },
+  { key: 'friday', label: 'Sexta-feira' },
   { key: 'saturday', label: 'Sábado' },
   { key: 'sunday', label: 'Domingo' },
 ] as const;
@@ -146,12 +189,12 @@ type TabKey = 'profile' | 'hours' | 'whatsapp' | 'notifications' | 'plan' | 'sec
 type WorkingHoursState = Record<string, { start: string; end: string } | null>;
 
 const defaultWorkingHours = (): WorkingHoursState => ({
-  monday: { start: '08:00', end: '18:00' },
-  tuesday: { start: '08:00', end: '18:00' },
-  wednesday: { start: '08:00', end: '18:00' },
-  thursday: { start: '08:00', end: '18:00' },
-  friday: { start: '08:00', end: '18:00' },
-  saturday: { start: '08:00', end: '12:00' },
+  monday: { start: '09:00', end: '19:00' },
+  tuesday: { start: '09:00', end: '19:00' },
+  wednesday: { start: '09:00', end: '19:00' },
+  thursday: { start: '09:00', end: '19:00' },
+  friday: { start: '09:00', end: '19:00' },
+  saturday: { start: '09:00', end: '17:00' },
   sunday: null,
 });
 
@@ -193,6 +236,12 @@ export default function SettingsPage() {
         name: body.name,
         phone: body.phone || undefined,
         businessName: body.businessName || undefined,
+        businessCategory: body.businessCategory?.trim() || undefined,
+        businessInstagram: body.businessInstagram?.trim() || undefined,
+        businessEmail: body.businessEmail?.trim() || undefined,
+        businessPhone: body.businessPhone?.trim() || undefined,
+        businessPixKey: body.businessPixKey?.trim() || undefined,
+        businessAddress: body.businessAddress?.trim() || undefined,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['settings'] });
@@ -245,6 +294,7 @@ export default function SettingsPage() {
   const {
     register,
     handleSubmit,
+    reset: resetProfileForm,
     formState: { errors },
   } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -253,6 +303,12 @@ export default function SettingsPage() {
           name: settings.name,
           phone: settings.phone ?? '',
           businessName: settings.businessName ?? '',
+          businessCategory: settings.businessCategory ?? '',
+          businessInstagram: settings.businessInstagram ?? '',
+          businessEmail: settings.businessEmail ?? '',
+          businessPhone: settings.businessPhone ?? '',
+          businessPixKey: settings.businessPixKey ?? '',
+          businessAddress: settings.businessAddress ?? '',
         }
       : undefined,
   });
@@ -268,202 +324,439 @@ export default function SettingsPage() {
 
   return (
     <>
-      <Header title="Configurações" subtitle="Seus dados e preferências" />
-      <main className="flex-1 overflow-auto p-8">
-        <div className="flex gap-8">
-          <Card className="w-52 shrink-0 p-2">
-            <nav className="flex flex-col gap-1">
-              {tabs.map(({ key, label, icon: Icon }) => (
-                <Link
-                  key={key}
-                  href={key === 'whatsapp' ? '/settings/whatsapp' : '#'}
-                  onClick={(e) => {
-                    if (key !== 'whatsapp') {
-                      e.preventDefault();
-                      setActiveTab(key);
-                    }
-                  }}
-                  className={cn(
-                    'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-                    activeTab === key && key !== 'whatsapp'
-                      ? 'bg-primary/10 text-primary'
-                      : 'text-slate-600 hover:bg-slate-50'
-                  )}
-                >
-                  <Icon className="size-4" />
-                  {label}
-                </Link>
-              ))}
-            </nav>
-          </Card>
+      <Header title="Configurações do Sistema" />
+      <main className="flex flex-1 flex-col gap-8 overflow-y-auto p-8">
+        <div className="flex flex-1 min-h-0 gap-8">
+          {/* Internal Tab Navigation Sidebar */}
+          <nav className="w-64 h-fit shrink-0 rounded-2xl border border-border bg-white p-2 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            {tabs.map(({ key, label, icon: Icon }) => (
+              <Link
+                key={key}
+                href={key === 'whatsapp' ? '/settings/whatsapp' : '#'}
+                onClick={(e) => {
+                  if (key !== 'whatsapp') {
+                    e.preventDefault();
+                    setActiveTab(key);
+                  }
+                }}
+                className={cn(
+                  'flex items-center gap-3 rounded-xl px-4 py-3 text-sm transition-all',
+                  activeTab === key && key !== 'whatsapp'
+                    ? 'bg-primary/10 font-bold text-primary'
+                    : 'font-medium text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800'
+                )}
+              >
+                <Icon className="size-5" />
+                {label}
+              </Link>
+            ))}
+          </nav>
 
-          <div className="min-w-0 flex-1">
+          <div className="min-h-0 min-w-0 flex-1 flex flex-col overflow-y-auto">
             {activeTab === 'profile' && (
-              <Card className="p-6">
-                <h2 className="mb-4 text-lg font-bold text-slate-800">
-                  Perfil
-                </h2>
-                <form
-                  onSubmit={handleSubmit((data) => profileMutation.mutate(data))}
-                  className="space-y-4"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="relative">
-                      <div className="size-20 rounded-full bg-primary/10 flex items-center justify-center text-2xl font-bold text-primary">
+              <div className="max-w-5xl w-full">
+                {/* Breadcrumb no header da área de conteúdo */}
+                <div className="mb-6 flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+                  <span className="font-medium">Configurações</span>
+                  <ChevronRight className="size-4" />
+                  <span className="font-bold text-slate-900 dark:text-slate-100">Meu Perfil</span>
+                </div>
+
+                <div className="overflow-hidden rounded-xl border border-border bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                  {/* Profile Header Section */}
+                  <div className="border-b border-border/60 bg-slate-50/50 p-8 dark:border-slate-800 dark:bg-slate-800/30 md:flex md:flex-row md:items-center md:gap-8">
+                    <div className="relative flex justify-center md:justify-start">
+                      <div
+                        className="size-32 rounded-full bg-primary flex items-center justify-center text-4xl font-bold text-white shadow-lg"
+                        aria-hidden
+                      >
                         {settings?.name?.slice(0, 2).toUpperCase() ?? '?'}
                       </div>
                       <button
                         type="button"
-                        className="absolute bottom-0 right-0 rounded-full bg-slate-200 p-1.5 text-slate-600 hover:bg-slate-300"
-                        aria-label="Trocar avatar"
+                        className="absolute bottom-0 right-0 size-10 rounded-full border border-border bg-white shadow-md hover:text-primary transition-colors flex items-center justify-center dark:border-slate-600 dark:bg-slate-700"
+                        aria-label="Trocar foto"
                       >
-                        <User className="size-4" />
+                        <Camera className="size-5 text-slate-600 dark:text-slate-300" />
+                      </button>
+                    </div>
+                    <div className="mt-6 flex-1 text-center md:mt-0 md:text-left">
+                      <div className="flex flex-col gap-3 md:flex-row md:items-center">
+                        <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                          {settings?.name ?? '—'}
+                        </h2>
+                        <span className="inline-flex w-fit items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+                          {settings?.plan ? PLAN_LABELS[settings.plan]?.name ?? `Plano ${settings.plan}` : '—'}
+                        </span>
+                      </div>
+                      <p className="mt-1 font-medium text-slate-500 dark:text-slate-400">
+                        {settings?.businessName || '—'}
+                      </p>
+                      {settings?.createdAt && (
+                        <p className="mt-1 text-sm text-slate-400">
+                          Membro desde {format(new Date(settings.createdAt), "MMMM 'de' yyyy", { locale: ptBR })}
+                        </p>
+                      )}
+                    </div>
+                    <div className="mt-6 flex justify-center md:mt-0">
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('security')}
+                        className="rounded-lg border border-border bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                      >
+                        Alterar Senha
                       </button>
                     </div>
                   </div>
-                  <Input
-                    label="Nome Completo"
-                    error={errors.name?.message}
-                    {...register('name')}
-                  />
-                  <Input
-                    label="Nome do Studio"
-                    error={errors.businessName?.message}
-                    {...register('businessName')}
-                  />
-                  <Input
-                    label="Telefone"
-                    error={errors.phone?.message}
-                    {...register('phone')}
-                  />
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-slate-700">
-                      E-mail
-                    </label>
-                    <input
-                      type="email"
-                      disabled
-                      value={settings?.email ?? ''}
-                      className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-slate-500"
-                    />
-                    <p className="mt-1 text-xs text-slate-500">
-                      Alterar e-mail entre em contato com o suporte.
-                    </p>
-                  </div>
-                  {toast && (
-                    <p
-                      className={
-                        toast.type === 'error'
-                          ? 'text-sm text-red-500'
-                          : 'text-sm text-emerald-600'
-                      }
-                    >
-                      {toast.message}
-                    </p>
-                  )}
-                  <Button
-                    type="submit"
-                    isLoading={profileMutation.isPending}
+
+                  {/* Form Content */}
+                  <form
+                    onSubmit={handleSubmit((data) => profileMutation.mutate(data))}
+                    className="p-8 space-y-10"
                   >
-                    Salvar Alterações
-                  </Button>
-                </form>
-              </Card>
+                    {/* Dados Pessoais */}
+                    <section>
+                      <h3 className="mb-6 flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-slate-100">
+                        <User className="size-5 text-primary" />
+                        Dados Pessoais
+                      </h3>
+                      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                            Nome Completo
+                          </label>
+                          <input
+                            type="text"
+                            className="w-full rounded-lg border border-border bg-white px-4 py-2.5 text-slate-900 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                            {...register('name')}
+                          />
+                          {errors.name?.message && (
+                            <p className="text-sm text-red-500">{errors.name.message}</p>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                            E-mail
+                          </label>
+                          <div className="relative">
+                            <input
+                              type="email"
+                              disabled
+                              value={settings?.email ?? ''}
+                              className="w-full cursor-not-allowed rounded-lg border border-border bg-slate-50 pr-10 py-2.5 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
+                            />
+                            <Lock className="absolute right-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                          </div>
+                          <p className="text-xs text-slate-500">Alterar e-mail: entre em contato com o suporte.</p>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                            Telefone
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="(00) 00000-0000"
+                            className="w-full rounded-lg border border-border bg-white px-4 py-2.5 text-slate-900 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                            {...register('phone')}
+                          />
+                          {errors.phone?.message && (
+                            <p className="text-sm text-red-500">{errors.phone.message}</p>
+                          )}
+                        </div>
+                      </div>
+                    </section>
+
+                    {/* Dados do Negócio */}
+                    <section>
+                      <h3 className="mb-6 flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-slate-100">
+                        <Store className="size-5 text-primary" />
+                        Dados do Negócio
+                      </h3>
+                      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                            Nome do Studio
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="Ex.: Studio Ana Rodrigues"
+                            className="w-full rounded-lg border border-border bg-white px-4 py-2.5 text-slate-900 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                            {...register('businessName')}
+                          />
+                          {errors.businessName?.message && (
+                            <p className="text-sm text-red-500">{errors.businessName.message}</p>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                            Categoria
+                          </label>
+                          <select
+                            className="w-full rounded-lg border border-border bg-white px-4 py-2.5 text-slate-900 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                            {...register('businessCategory')}
+                          >
+                            <option value="">Selecione</option>
+                            <option value="Manicure & Estética">Manicure & Estética</option>
+                            <option value="Cabelo & Barba">Cabelo & Barba</option>
+                            <option value="Maquiagem">Maquiagem</option>
+                            <option value="Massagem & Bem-estar">Massagem & Bem-estar</option>
+                            <option value="Outro">Outro</option>
+                          </select>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                            Instagram
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="@seu.studio"
+                            className="w-full rounded-lg border border-border bg-white px-4 py-2.5 text-slate-900 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                            {...register('businessInstagram')}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                            E-mail do Negócio
+                          </label>
+                          <input
+                            type="email"
+                            placeholder="contato@seu.studio"
+                            className="w-full rounded-lg border border-border bg-white px-4 py-2.5 text-slate-900 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                            {...register('businessEmail')}
+                          />
+                          {errors.businessEmail?.message && (
+                            <p className="text-sm text-red-500">{errors.businessEmail.message}</p>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                            Telefone do Negócio
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="(11) 99999-9999"
+                            className="w-full rounded-lg border border-border bg-white px-4 py-2.5 text-slate-900 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                            {...register('businessPhone')}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                            Chave Pix
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="E-mail, CPF ou celular"
+                            className="w-full rounded-lg border border-border bg-white px-4 py-2.5 text-slate-900 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                            {...register('businessPixKey')}
+                          />
+                        </div>
+                        <div className="space-y-2 md:col-span-2">
+                          <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                            Endereço Profissional
+                          </label>
+                          <div className="relative">
+                            <MapPin className="absolute left-3 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
+                            <input
+                              type="text"
+                              placeholder="Rua, número - Bairro, Cidade - UF"
+                              className="w-full rounded-lg border border-border bg-white py-2.5 pl-10 pr-4 text-slate-900 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                              {...register('businessAddress')}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </section>
+
+                    {toast && (
+                      <p
+                        className={cn(
+                          'text-sm',
+                          toast.type === 'error' ? 'text-red-500' : 'text-emerald-600'
+                        )}
+                      >
+                        {toast.message}
+                      </p>
+                    )}
+
+                    {/* Footer Actions */}
+                    <div className="flex justify-end gap-4 border-t border-border bg-slate-50 p-8 -mx-8 -mb-8 mt-10 dark:border-slate-800 dark:bg-slate-800/50">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="px-6 py-2.5 text-sm font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+                        onClick={() =>
+                          resetProfileForm(
+                            settings
+                              ? {
+                                  name: settings.name,
+                                  phone: settings.phone ?? '',
+                                  businessName: settings.businessName ?? '',
+                                  businessCategory: settings.businessCategory ?? '',
+                                  businessInstagram: settings.businessInstagram ?? '',
+                                  businessEmail: settings.businessEmail ?? '',
+                                  businessPhone: settings.businessPhone ?? '',
+                                  businessPixKey: settings.businessPixKey ?? '',
+                                  businessAddress: settings.businessAddress ?? '',
+                                }
+                              : undefined
+                          )
+                        }
+                      >
+                        Descartar
+                      </Button>
+                      <Button
+                        type="submit"
+                        className="rounded-lg bg-primary px-8 py-2.5 text-sm font-bold text-white shadow-md shadow-primary/20 transition-all hover:bg-primary/90 active:scale-95"
+                        isLoading={profileMutation.isPending}
+                      >
+                        Salvar Alterações
+                      </Button>
+                    </div>
+                  </form>
+                </div>
+              </div>
             )}
 
             {activeTab === 'hours' && (
-              <Card className="p-6">
-                <h2 className="mb-4 text-lg font-bold text-slate-800">
-                  Horários de Atendimento
-                </h2>
-                <div className="space-y-4">
-                  {DAYS.map((day) => {
-                    const value = workingHours[day.key];
-                    const enabled = value !== null;
-                    const start = value?.start ?? '08:00';
-                    const end = value?.end ?? '18:00';
-                    const options = Array.from({ length: 13 }, (_, h) => {
-                      const hour = h + 8;
-                      const v = `${hour.toString().padStart(2, '0')}:00`;
-                      return { value: v, label: v };
-                    });
-                    return (
-                      <div
-                        key={day.key}
-                        className={cn(
-                          'flex flex-wrap items-center gap-4',
-                          !enabled && 'opacity-60'
-                        )}
-                      >
-                        <label className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            checked={enabled}
-                            onChange={(e) =>
-                              updateDayHours(
-                                day.key,
-                                e.target.checked,
-                                e.target.checked ? start : undefined,
-                                e.target.checked ? end : undefined
-                              )
-                            }
-                          />
-                          <span className="w-24 font-medium text-slate-700">
-                            {day.label}
-                          </span>
-                        </label>
-                        <select
-                          className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800"
-                          value={start}
-                          disabled={!enabled}
-                          onChange={(e) =>
-                            updateDayHours(day.key, enabled, e.target.value, end)
-                          }
+              <section className="flex flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                <div className="border-b border-border/60 p-8 dark:border-slate-800">
+                  <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                    Horários de Atendimento
+                  </h3>
+                  <p className="mt-1 text-slate-500 dark:text-slate-400">
+                    Defina seus horários de trabalho e intervalos de descanso para cada dia da semana.
+                  </p>
+                </div>
+                <div className="flex-1 overflow-y-auto p-8 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200 dark:[&::-webkit-scrollbar-thumb]:bg-slate-700">
+                  <div className="space-y-4">
+                    {DAYS.map((day) => {
+                      const value = workingHours[day.key];
+                      const enabled = value !== null;
+                      const start = value?.start ?? '09:00';
+                      const end = value?.end ?? '19:00';
+                      return (
+                        <div
+                          key={day.key}
+                          className={cn(
+                            'flex flex-wrap items-center justify-between gap-4 rounded-xl border p-4',
+                            enabled
+                              ? 'border-border/60 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-800/20'
+                              : 'border-border bg-slate-100 opacity-60 dark:border-slate-800 dark:bg-slate-800/50'
+                          )}
                         >
-                          {options.map((o) => (
-                            <option key={o.value} value={o.value}>
-                              {o.label}
-                            </option>
-                          ))}
-                        </select>
-                        <span className="text-slate-400">até</span>
-                        <select
-                          className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800"
-                          value={end}
-                          disabled={!enabled}
-                          onChange={(e) =>
-                            updateDayHours(day.key, enabled, start, e.target.value)
-                          }
-                        >
-                          {options.map((o) => (
-                            <option key={o.value} value={o.value}>
-                              {o.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    );
-                  })}
+                          <div className="flex min-w-[140px] items-center gap-4">
+                            <label className="relative inline-flex cursor-pointer items-center">
+                              <input
+                                type="checkbox"
+                                className="sr-only peer"
+                                checked={enabled}
+                                onChange={(e) =>
+                                  updateDayHours(
+                                    day.key,
+                                    e.target.checked,
+                                    e.target.checked ? start : undefined,
+                                    e.target.checked ? end : undefined
+                                  )
+                                }
+                              />
+                              <div className="relative h-6 w-11 rounded-full bg-slate-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white peer-checked:bg-primary dark:border-gray-600 dark:bg-slate-700" />
+                            </label>
+                            <span
+                              className={cn(
+                                'text-base font-semibold',
+                                enabled
+                                  ? 'text-slate-700 dark:text-slate-200'
+                                  : 'text-slate-400 dark:text-slate-500'
+                              )}
+                            >
+                              {day.label}
+                            </span>
+                          </div>
+                          {enabled ? (
+                            <>
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="time"
+                                  className="rounded-lg border border-border bg-white px-3 py-2 text-sm focus:border-primary focus:ring-2 focus:ring-primary dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                                  value={start}
+                                  onChange={(e) =>
+                                    updateDayHours(day.key, true, e.target.value, end)
+                                  }
+                                />
+                                <span className="text-slate-400">até</span>
+                                <input
+                                  type="time"
+                                  className="rounded-lg border border-border bg-white px-3 py-2 text-sm focus:border-primary focus:ring-2 focus:ring-primary dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                                  value={end}
+                                  onChange={(e) =>
+                                    updateDayHours(day.key, true, start, e.target.value)
+                                  }
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                className="flex items-center gap-2 rounded-lg bg-primary/5 px-3 py-1.5 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
+                              >
+                                <Plus className="size-[18px]" />
+                                Adicionar Intervalo
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <div className="flex items-center gap-2 grayscale">
+                                <input
+                                  type="time"
+                                  className="cursor-not-allowed rounded-lg border border-border bg-slate-50 text-sm dark:border-slate-700 dark:bg-slate-900"
+                                  disabled
+                                  value="00:00"
+                                />
+                                <span className="text-slate-400">até</span>
+                                <input
+                                  type="time"
+                                  className="cursor-not-allowed rounded-lg border border-border bg-slate-50 text-sm dark:border-slate-700 dark:bg-slate-900"
+                                  disabled
+                                  value="00:00"
+                                />
+                              </div>
+                              <span className="text-xs font-medium italic text-slate-400">
+                                Fechado
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
                 {toast && activeTab === 'hours' && (
                   <p
                     className={cn(
-                      'mt-4 text-sm',
+                      'px-8 text-sm',
                       toast.type === 'error' ? 'text-red-500' : 'text-emerald-600'
                     )}
                   >
                     {toast.message}
                   </p>
                 )}
-                <Button
-                  type="button"
-                  className="mt-6"
-                  onClick={() => hoursMutation.mutate(workingHours)}
-                  isLoading={hoursMutation.isPending}
-                >
-                  Salvar Horários
-                </Button>
-              </Card>
+                <div className="flex justify-end gap-3 border-t border-border/60 bg-slate-50 p-6 dark:border-slate-800 dark:bg-slate-800/50">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="rounded-xl px-6 py-2 font-semibold text-slate-600 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-700"
+                    onClick={() => setActiveTab('profile')}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="button"
+                    className="rounded-xl px-8 py-2 font-bold shadow-lg shadow-primary/30 active:scale-95"
+                    onClick={() => hoursMutation.mutate(workingHours)}
+                    isLoading={hoursMutation.isPending}
+                  >
+                    Salvar Alterações
+                  </Button>
+                </div>
+              </section>
             )}
 
             {activeTab === 'notifications' && (
@@ -478,14 +771,216 @@ export default function SettingsPage() {
             )}
 
             {activeTab === 'plan' && (
-              <Card className="p-6">
-                <h2 className="mb-4 text-lg font-bold text-slate-800">
-                  Plano
-                </h2>
-                <p className="text-slate-600">
-                  Plano atual: <strong>{settings?.plan ?? '—'}</strong>
-                </p>
-              </Card>
+              <div className="space-y-8">
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                    Plano e Faturamento
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    Gerencie sua assinatura, métodos de pagamento e faturas.
+                  </p>
+                </div>
+
+                {/* Card Plano Atual */}
+                <div className="overflow-hidden rounded-xl border border-border bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                  <div className="flex flex-col gap-6 p-6 md:flex-row md:items-center md:justify-between">
+                    <div className="flex items-start gap-4">
+                      <div className="rounded-lg bg-primary/10 p-3 text-primary">
+                        <Award className="size-6" />
+                      </div>
+                      <div>
+                        <div className="mb-1 flex items-center gap-2">
+                          <p className="text-sm font-semibold uppercase tracking-wider text-slate-400">
+                            Plano Atual
+                          </p>
+                          <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold uppercase text-white">
+                            Ativo
+                          </span>
+                        </div>
+                        <h3 className="mb-1 text-xl font-bold text-slate-900 dark:text-white">
+                          {settings?.plan
+                            ? PLAN_LABELS[settings.plan]?.name ?? `Plano ${settings.plan}`
+                            : '—'}
+                        </h3>
+                        <p className="text-slate-600 dark:text-slate-400">
+                          {settings?.plan
+                            ? PLAN_LABELS[settings.plan]?.description ?? '—'
+                            : 'Carregando...'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <div className="text-right">
+                        <p className="text-2xl font-black text-slate-900 dark:text-white">
+                          {settings?.plan
+                            ? PLAN_LABELS[settings.plan]?.price ?? '—'
+                            : '—'}
+                          <span className="text-sm font-normal text-slate-500">/mês</span>
+                        </p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          Próxima renovação:{' '}
+                          <span className="font-medium text-slate-700 dark:text-slate-300">
+                            —
+                          </span>
+                        </p>
+                      </div>
+                      <div className="mt-2 flex items-center gap-3">
+                        <Button className="rounded-lg px-4 py-2 text-sm font-semibold">
+                          Alterar Plano
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Formas de Pagamento */}
+                <div className="space-y-4">
+                  <h3 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-slate-100">
+                    <CreditCard className="size-5 text-slate-400" />
+                    Formas de Pagamento
+                  </h3>
+                  <div className="rounded-xl border border-border bg-white dark:border-slate-800 dark:bg-slate-900">
+                    <div className="border-b border-border/60 p-4 dark:border-slate-800">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="flex h-8 w-12 items-center justify-center rounded bg-slate-100 p-1 dark:bg-slate-800">
+                            <span className="text-[10px] font-bold italic text-blue-800">
+                              VISA
+                            </span>
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-slate-900 dark:text-white">
+                              Visa terminado em 4242
+                            </p>
+                            <p className="text-xs text-slate-500">
+                              Expira em 12/2028 • Principal
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          className="flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                        >
+                          <Pencil className="size-4" />
+                          Editar
+                        </button>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-2 px-4 py-3 text-sm font-medium text-slate-600 transition-colors hover:text-primary"
+                    >
+                      <Plus className="size-4" />
+                      Adicionar novo cartão
+                    </button>
+                  </div>
+                </div>
+
+                {/* Histórico de Faturas */}
+                <div className="space-y-4">
+                  <h3 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-slate-100">
+                    <Receipt className="size-5 text-slate-400" />
+                    Histórico de Faturas
+                  </h3>
+                  <div className="overflow-hidden rounded-xl border border-border bg-white dark:border-slate-800 dark:bg-slate-900">
+                    <table className="w-full text-left">
+                      <thead className="border-b border-border bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:border-slate-800 dark:bg-slate-800/50">
+                        <tr>
+                          <th className="px-6 py-3">Data</th>
+                          <th className="px-6 py-3">Valor</th>
+                          <th className="px-6 py-3">Status</th>
+                          <th className="px-6 py-3 text-right">Ação</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/60 text-sm dark:divide-slate-800">
+                        <tr>
+                          <td className="px-6 py-4 text-slate-700 dark:text-slate-300">
+                            15 Mar, 2024
+                          </td>
+                          <td className="px-6 py-4 font-medium text-slate-900 dark:text-white">
+                            R$ 49,90
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-600 dark:bg-green-900/20 dark:text-green-400">
+                              <span className="size-1.5 rounded-full bg-green-600" />
+                              Pago
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <button
+                              type="button"
+                              className="text-slate-400 hover:text-primary"
+                              aria-label="Baixar fatura"
+                            >
+                              <Download className="size-5" />
+                            </button>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="px-6 py-4 text-slate-700 dark:text-slate-300">
+                            15 Fev, 2024
+                          </td>
+                          <td className="px-6 py-4 font-medium text-slate-900 dark:text-white">
+                            R$ 49,90
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-600 dark:bg-green-900/20 dark:text-green-400">
+                              <span className="size-1.5 rounded-full bg-green-600" />
+                              Pago
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <button
+                              type="button"
+                              className="text-slate-400 hover:text-primary"
+                              aria-label="Baixar fatura"
+                            >
+                              <Download className="size-5" />
+                            </button>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="px-6 py-4 text-slate-700 dark:text-slate-300">
+                            15 Jan, 2024
+                          </td>
+                          <td className="px-6 py-4 font-medium text-slate-900 dark:text-white">
+                            R$ 49,90
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-600 dark:bg-amber-900/20 dark:text-amber-400">
+                              <span className="size-1.5 animate-pulse rounded-full bg-amber-600" />
+                              Processando
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <button
+                              type="button"
+                              className="text-slate-400 hover:text-primary"
+                              aria-label="Mais opções"
+                            >
+                              <MoreHorizontal className="size-5" />
+                            </button>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Rodapé Cancelar assinatura */}
+                <div className="flex flex-col items-center justify-center gap-4 border-t border-border pt-8 dark:border-slate-800">
+                  <p className="max-w-md text-center text-xs text-slate-400">
+                    Ao cancelar sua assinatura, você perderá acesso às funcionalidades
+                    premium no final do ciclo de faturamento atual.
+                  </p>
+                  <button
+                    type="button"
+                    className="text-xs font-medium text-slate-400 underline decoration-slate-300 underline-offset-4 transition-colors hover:text-red-500 hover:decoration-red-400"
+                  >
+                    Cancelar assinatura do Beleza Pro
+                  </button>
+                </div>
+              </div>
             )}
 
             {activeTab === 'security' && (

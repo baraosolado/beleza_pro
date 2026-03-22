@@ -65,7 +65,7 @@ export default function RegisterPage() {
 
   return (
     <main className="flex min-h-screen">
-      <div className="hidden w-1/2 flex-col justify-between bg-gradient-to-br from-violet-700 to-violet-900 p-10 lg:flex">
+      <div className="hidden w-1/2 flex-col justify-between bg-gradient-to-br from-[#BE185D] via-primary to-[#9D174D] p-10 lg:flex">
         <h1 className="text-2xl font-bold tracking-tight text-white">
           Beleza Pro
         </h1>
@@ -94,7 +94,7 @@ export default function RegisterPage() {
         </p>
       </div>
 
-      <div className="flex w-full flex-col justify-center bg-white p-8 lg:w-1/2">
+      <div className="flex w-full flex-col justify-center bg-app-bg p-8 lg:w-1/2">
         <div className="flex justify-end">
           <Link
             href="/auth/login"
@@ -107,10 +107,10 @@ export default function RegisterPage() {
           <div className="mb-2 inline-block rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
             ✨ 14 dias grátis, sem cartão
           </div>
-          <h2 className="text-2xl font-bold tracking-tight text-slate-800">
+          <h2 className="text-2xl font-bold tracking-tight text-ink-primary">
             Criar conta
           </h2>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-ink-secondary">
             Preencha os dados para começar
           </p>
           <form

@@ -13,10 +13,11 @@ export async function summary(
 }
 
 export async function upcoming(
-  request: FastifyRequest,
+  request: FastifyRequest<{ Querystring: { today?: string } }>,
   reply: FastifyReply
 ): Promise<FastifyReply> {
-  const result = await dashboardService.upcoming(request.userId);
+  const todayOnly = request.query.today === '1' || request.query.today === 'true';
+  const result = await dashboardService.upcoming(request.userId, { todayOnly });
   if (result.error) return replyError(reply, result.statusCode, result.error, result.code);
   return reply.send(result.data);
 }

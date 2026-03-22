@@ -43,11 +43,23 @@ type WeeklyCalendarProps = {
   className?: string;
 };
 
-const HOURS_START = 8;
-const HOURS_END = 20;
+const HOURS_START = 0;
+const HOURS_END = 24;
 const SLOT_HEIGHT = 56;
 const LUNCH_START = 12;
 const LUNCH_END = 13;
+
+function parseAppointmentDate(value: Date | string): Date {
+  if (value instanceof Date) return value;
+
+  // Para a agenda, queremos respeitar exatamente o horário local,
+  // deixando o navegador aplicar o fuso automaticamente.
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) {
+    return new Date(value);
+  }
+  return d;
+}
 
 function CurrentTimeLine() {
   const [top, setTop] = useState(0);
@@ -78,8 +90,8 @@ function CurrentTimeLine() {
       className="pointer-events-none absolute left-0 right-0 z-20 flex items-center"
       style={{ top: `${top}px` }}
     >
-      <div className="size-2.5 rounded-full bg-violet-500 shadow-md shadow-violet-500/50" />
-      <div className="h-[2px] flex-1 bg-violet-500/70" />
+      <div className="size-2.5 rounded-full bg-primary shadow-md shadow-btn-primary" />
+      <div className="h-[2px] flex-1 bg-primary/70" />
     </div>
   );
 }
@@ -133,14 +145,20 @@ export function WeeklyCalendar({
   }, []);
 
   const getBlockStyle = (apt: CalendarAppointment) => {
-    const start =
-      typeof apt.scheduledAt === 'string'
-        ? new Date(apt.scheduledAt)
-        : apt.scheduledAt;
+    const start = parseAppointmentDate(apt.scheduledAt);
+    if (Number.isNaN(start.getTime())) {
+      return { display: 'none' as const };
+    }
+
+    const duration =
+      typeof apt.durationMin === 'number' && Number.isFinite(apt.durationMin)
+        ? apt.durationMin
+        : 60;
+
     const top =
       (start.getHours() - HOURS_START) * SLOT_HEIGHT +
       (start.getMinutes() / 60) * SLOT_HEIGHT;
-    const height = Math.max((apt.durationMin / 60) * SLOT_HEIGHT, SLOT_HEIGHT / 2);
+    const height = Math.max((duration / 60) * SLOT_HEIGHT, SLOT_HEIGHT / 2);
     const dayIndex = displayDays.findIndex((d) => isSameDay(d, start));
     if (dayIndex < 0) return { display: 'none' as const };
     const colWidth = 100 / displayDays.length;
@@ -187,13 +205,16 @@ export function WeeklyCalendar({
                 const isCurrent = isToday(day);
                 const isSelected = isSameDay(day, currentDate);
                 const dayApts = appointments.filter((a) => {
-                  const d = typeof a.scheduledAt === 'string' ? new Date(a.scheduledAt) : a.scheduledAt;
+                  const d = parseAppointmentDate(a.scheduledAt);
                   return isSameDay(d, day) && a.status !== 'cancelled';
                 });
                 return (
                   <div
                     key={i}
-                    onClick={() => onDateChange(day)}
+                    onClick={() => {
+                      onDateChange(day);
+                      onViewChange?.('day');
+                    }}
                     className={cn(
                       'min-h-[80px] cursor-pointer border-b border-r border-slate-100 p-1.5 transition-colors hover:bg-slate-50',
                       !isCurrentMonth && 'opacity-30'
@@ -202,8 +223,8 @@ export function WeeklyCalendar({
                     <span
                       className={cn(
                         'inline-flex size-6 items-center justify-center rounded-full text-xs font-bold',
-                        isCurrent && 'bg-violet-600 text-white',
-                        isSelected && !isCurrent && 'bg-violet-100 text-violet-700',
+                        isCurrent && 'bg-primary text-white',
+                        isSelected && !isCurrent && 'bg-primary-muted text-primary-hover',
                         !isCurrent && !isSelected && 'text-slate-700'
                       )}
                     >
@@ -216,7 +237,7 @@ export function WeeklyCalendar({
                           onClick={(e) => { e.stopPropagation(); onAppointmentClick?.(apt); }}
                           className={cn(
                             'truncate rounded px-1 py-0.5 text-[10px] font-medium',
-                            apt.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' : 'bg-violet-100 text-violet-700'
+                            apt.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' : 'bg-primary-muted text-primary-hover'
                           )}
                         >
                           {format(typeof apt.scheduledAt === 'string' ? new Date(apt.scheduledAt) : apt.scheduledAt, 'HH:mm')} {apt.clientName}
@@ -231,7 +252,12 @@ export function WeeklyCalendar({
               })}
             </div>
           </div>
-          <MiniSidebar appointments={appointments} currentDate={currentDate} onDateChange={onDateChange} />
+          <MiniSidebar
+            appointments={appointments}
+            currentDate={currentDate}
+            onDateChange={onDateChange}
+            onViewChange={onViewChange}
+          />
         </div>
       </div>
     );
@@ -239,12 +265,12 @@ export function WeeklyCalendar({
 
   // Day / Week view
   const todayApts = appointments.filter((a) => {
-    const d = typeof a.scheduledAt === 'string' ? new Date(a.scheduledAt) : a.scheduledAt;
+    const d = parseAppointmentDate(a.scheduledAt);
     return isSameDay(d, new Date()) && a.status !== 'cancelled';
   });
   const firstApt = todayApts[0];
   const firstTime = firstApt
-    ? format(typeof firstApt.scheduledAt === 'string' ? new Date(firstApt.scheduledAt) : firstApt.scheduledAt, 'HH:mm')
+    ? format(parseAppointmentDate(firstApt.scheduledAt), 'HH:mm')
     : null;
 
   return (
@@ -275,7 +301,7 @@ export function WeeklyCalendar({
                   <span
                     className={cn(
                       'text-[11px] font-semibold tracking-wider',
-                      isCurrent ? 'text-violet-600' : 'text-slate-400'
+                      isCurrent ? 'text-primary' : 'text-slate-400'
                     )}
                   >
                     {weekdayLabel}
@@ -284,7 +310,7 @@ export function WeeklyCalendar({
                     className={cn(
                       'mt-1 flex size-8 items-center justify-center text-sm font-bold',
                       isCurrent
-                        ? 'rounded-full bg-violet-600 text-white shadow-md shadow-violet-600/30'
+                        ? 'rounded-full bg-primary text-white shadow-md shadow-btn-primary-lg'
                         : 'text-slate-700'
                     )}
                   >
@@ -340,7 +366,7 @@ export function WeeklyCalendar({
                   key={day.toISOString()}
                   className={cn(
                     'relative flex-1 border-l border-slate-100',
-                    isToday(day) && 'bg-violet-50/30'
+                    isToday(day) && 'bg-primary-light/50'
                   )}
                   style={{ height: `${SLOT_HEIGHT * hours.length}px` }}
                 >
@@ -351,25 +377,29 @@ export function WeeklyCalendar({
               {/* Appointment blocks */}
               {appointments
                 .filter((a) => {
-                  const d =
-                    typeof a.scheduledAt === 'string'
-                      ? new Date(a.scheduledAt)
-                      : a.scheduledAt;
-                  return (
-                    d.getHours() >= HOURS_START &&
-                    d.getHours() < HOURS_END &&
-                    (viewMode !== 'day' || isSameDay(d, currentDate))
-                  );
+                  const d = parseAppointmentDate(a.scheduledAt);
+                  // Exibe todos os agendamentos da semana selecionada;
+                  // se estiver em modo "Dia", filtra apenas o dia atual.
+                  return viewMode !== 'day' || isSameDay(d, currentDate);
                 })
                 .map((apt) => {
                   const style = getBlockStyle(apt);
                   if (style.display === 'none') return null;
 
-                  const start =
-                    typeof apt.scheduledAt === 'string'
-                      ? new Date(apt.scheduledAt)
-                      : apt.scheduledAt;
-                  const end = new Date(start.getTime() + apt.durationMin * 60_000);
+                  const start = parseAppointmentDate(apt.scheduledAt);
+                  if (Number.isNaN(start.getTime())) {
+                    return null;
+                  }
+
+                  const duration =
+                    typeof apt.durationMin === 'number' && Number.isFinite(apt.durationMin)
+                      ? apt.durationMin
+                      : 60;
+                  const end = new Date(start.getTime() + duration * 60_000);
+                  if (Number.isNaN(end.getTime())) {
+                    return null;
+                  }
+
                   const timeLabel = `${format(start, 'HH:mm')} - ${format(end, 'HH:mm')}`;
 
                   const isConfirmed = apt.status === 'confirmed';
@@ -399,7 +429,7 @@ export function WeeklyCalendar({
                           'border border-slate-200 bg-slate-100 text-slate-700',
                         !isConfirmed &&
                           !isCompleted &&
-                          'border border-violet-200 bg-violet-100 text-violet-900'
+                          'border border-primary/25 bg-primary-muted text-primary-hover'
                       )}
                       style={{
                         top: style.top,
@@ -411,7 +441,7 @@ export function WeeklyCalendar({
                       <div className="flex items-start justify-between gap-1">
                         <p className={cn(
                           'font-bold text-[10px]',
-                          isConfirmed ? 'text-emerald-600' : 'text-violet-600'
+                          isConfirmed ? 'text-emerald-600' : 'text-primary'
                         )}>
                           {timeLabel}
                         </p>
@@ -520,7 +550,7 @@ function CalendarHeader({
           <button
             type="button"
             onClick={onNewAppointment}
-            className="flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-violet-600/20 transition-all hover:bg-violet-700 hover:shadow-lg hover:shadow-violet-600/30"
+            className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white shadow-btn-primary transition-all hover:bg-primary-hover hover:shadow-btn-primary-lg"
           >
             <Plus className="size-4" />
             Novo Agendamento
@@ -535,12 +565,14 @@ function MiniSidebar({
   appointments,
   currentDate,
   onDateChange,
+  onViewChange,
   todayCount,
   firstTime,
 }: {
   appointments: CalendarAppointment[];
   currentDate: Date;
   onDateChange: (d: Date) => void;
+  onViewChange?: (v: ViewMode) => void;
   todayCount?: number;
   firstTime?: string | null;
 }) {
@@ -585,10 +617,7 @@ function MiniSidebar({
           ))}
           {calDays.map((day, i) => {
             const hasApt = appointments.some((a) => {
-              const ad =
-                typeof a.scheduledAt === 'string'
-                  ? new Date(a.scheduledAt)
-                  : a.scheduledAt;
+              const ad = parseAppointmentDate(a.scheduledAt);
               return isSameDay(ad, day) && a.status !== 'cancelled';
             });
             const isCurrent = isToday(day);
@@ -599,18 +628,22 @@ function MiniSidebar({
               <button
                 key={i}
                 type="button"
-                onClick={() => { onDateChange(day); setMiniMonth(day); }}
+                onClick={() => {
+                  onDateChange(day);
+                  setMiniMonth(day);
+                  onViewChange?.('day');
+                }}
                 className={cn(
                   'relative flex size-7 items-center justify-center rounded-full text-[12px] transition-all mx-auto',
-                  isCurrent && 'bg-violet-600 font-bold text-white',
-                  isSelected && !isCurrent && 'bg-violet-100 font-bold text-violet-700',
+                  isCurrent && 'bg-primary font-bold text-white',
+                  isSelected && !isCurrent && 'bg-primary-muted font-bold text-primary-hover',
                   !isCurrent && !isSelected && isCurrentMon && 'text-slate-700 hover:bg-slate-100',
                   !isCurrentMon && 'text-slate-300'
                 )}
               >
                 {format(day, 'd')}
                 {hasApt && !isCurrent && (
-                  <span className="absolute bottom-0.5 left-1/2 size-1 -translate-x-1/2 rounded-full bg-violet-500" />
+                  <span className="absolute bottom-0.5 left-1/2 size-1 -translate-x-1/2 rounded-full bg-primary" />
                 )}
               </button>
             );
@@ -625,7 +658,7 @@ function MiniSidebar({
         </p>
         <div className="space-y-2">
           {[
-            { color: 'bg-violet-500', label: 'Agendado' },
+            { color: 'bg-primary', label: 'Agendado' },
             { color: 'bg-emerald-500', label: 'Confirmado' },
             { color: 'bg-slate-300', label: 'Concluído' },
           ].map(({ color, label }) => (
@@ -638,8 +671,8 @@ function MiniSidebar({
       </div>
 
       {/* Today summary */}
-      <div className="rounded-xl border border-violet-100 bg-violet-50 p-4">
-        <p className="text-xs font-bold text-violet-700">
+      <div className="rounded-xl border border-primary-muted bg-primary-light p-4">
+        <p className="text-xs font-bold text-primary-hover">
           Hoje: {format(new Date(), "EEE d 'de' MMMM", { locale: ptBR })}
         </p>
         <p className="mt-2 text-[12px] leading-relaxed text-slate-600">

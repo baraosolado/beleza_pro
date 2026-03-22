@@ -12,6 +12,12 @@ type UpdateInput = {
   name?: string;
   phone?: string;
   businessName?: string;
+  businessCategory?: string;
+  businessInstagram?: string;
+  businessEmail?: string;
+  businessPhone?: string;
+  businessPixKey?: string;
+  businessAddress?: string;
   workingHours?: Record<string, unknown>;
 };
 
@@ -24,12 +30,33 @@ export async function get(
     phone: string | null;
     plan: string;
     businessName: string | null;
+    businessCategory: string | null;
+    businessInstagram: string | null;
+    businessEmail: string | null;
+    businessPhone: string | null;
+    businessPixKey: string | null;
+    businessAddress: string | null;
     workingHours: unknown;
+    createdAt: string;
   }>
 > {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { name: true, email: true, phone: true, plan: true, businessName: true, workingHours: true },
+    select: {
+      name: true,
+      email: true,
+      phone: true,
+      plan: true,
+      businessName: true,
+      businessCategory: true,
+      businessInstagram: true,
+      businessEmail: true,
+      businessPhone: true,
+      businessPixKey: true,
+      businessAddress: true,
+      workingHours: true,
+      createdAt: true,
+    },
   });
   if (!user) return { error: 'Usuário não encontrado', code: 'NOT_FOUND', statusCode: 404 };
   return {
@@ -39,7 +66,14 @@ export async function get(
       phone: user.phone,
       plan: user.plan,
       businessName: user.businessName,
+      businessCategory: user.businessCategory,
+      businessInstagram: user.businessInstagram,
+      businessEmail: user.businessEmail,
+      businessPhone: user.businessPhone,
+      businessPixKey: user.businessPixKey,
+      businessAddress: user.businessAddress,
       workingHours: user.workingHours,
+      createdAt: user.createdAt.toISOString(),
     },
   };
 }
@@ -54,9 +88,28 @@ export async function update(
       ...(input.name !== undefined && { name: input.name }),
       ...(input.phone !== undefined && { phone: input.phone }),
       ...(input.businessName !== undefined && { businessName: input.businessName }),
+      ...(input.businessCategory !== undefined && { businessCategory: input.businessCategory || null }),
+      ...(input.businessInstagram !== undefined && { businessInstagram: input.businessInstagram || null }),
+      ...(input.businessEmail !== undefined && { businessEmail: input.businessEmail || null }),
+      ...(input.businessPhone !== undefined && { businessPhone: input.businessPhone || null }),
+      ...(input.businessPixKey !== undefined && { businessPixKey: input.businessPixKey || null }),
+      ...(input.businessAddress !== undefined && { businessAddress: input.businessAddress || null }),
       ...(input.workingHours !== undefined && { workingHours: input.workingHours as object }),
     },
-    select: { name: true, email: true, phone: true, plan: true, businessName: true, workingHours: true },
+    select: {
+      name: true,
+      email: true,
+      phone: true,
+      plan: true,
+      businessName: true,
+      businessCategory: true,
+      businessInstagram: true,
+      businessEmail: true,
+      businessPhone: true,
+      businessPixKey: true,
+      businessAddress: true,
+      workingHours: true,
+    },
   });
   return { data: user };
 }

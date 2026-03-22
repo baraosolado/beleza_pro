@@ -20,7 +20,7 @@ export function Modal({
   if (!open) return <></>;
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-[2px]"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -28,12 +28,15 @@ export function Modal({
     >
       <div
         className={cn(
-          'w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-xl',
+          'w-full max-w-md rounded-xl border border-border bg-app-surface p-5 shadow-card-hover',
           className
         )}
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 id="modal-title" className="mb-4 text-lg font-bold text-slate-800">
+        <h2
+          id="modal-title"
+          className="mb-4 text-base font-bold tracking-tight text-ink-primary"
+        >
           {title}
         </h2>
         {children}

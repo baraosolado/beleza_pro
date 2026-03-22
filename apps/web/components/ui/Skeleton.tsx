@@ -9,7 +9,7 @@ type SkeletonProps = {
 export function Skeleton({ className }: SkeletonProps): React.ReactElement {
   return (
     <div
-      className={cn('animate-pulse rounded-lg bg-slate-200', className)}
+      className={cn('animate-pulse rounded-lg bg-zinc-200', className)}
       aria-hidden
     />
   );

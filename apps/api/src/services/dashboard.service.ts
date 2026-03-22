@@ -11,6 +11,7 @@ export async function summary(
     todayAppointments: number;
     monthReceived: number;
     monthPending: number;
+    monthOverdue: number;
     activeClientsCount: number;
   }>
 > {
@@ -21,7 +22,14 @@ export async function summary(
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 
-  const [todayAppointments, monthReceived, monthPending, activeClientsCount] = await Promise.all([
+  const [
+    todayAppointments,
+    receivedWithPaidAt,
+    receivedWithoutPaidAt,
+    monthPending,
+    monthOverdue,
+    activeClientsCount,
+  ] = await Promise.all([
     prisma.appointment.count({
       where: {
         userId,
@@ -29,11 +37,34 @@ export async function summary(
         status: { in: ['scheduled', 'confirmed'] },
       },
     }),
+    // Recebido no mês: pago com paidAt no mês
+    prisma.charge
+      .aggregate({
+        where: {
+          userId,
+          status: 'paid',
+          paidAt: { gte: startOfMonth, lte: endOfMonth },
+        },
+        _sum: { amount: true },
+      })
+      .then((r) => Number(r._sum.amount ?? 0)),
+    // Pago sem paidAt preenchido (marcado manualmente): considera dueDate no mês
+    prisma.charge
+      .aggregate({
+        where: {
+          userId,
+          status: 'paid',
+          paidAt: null,
+          dueDate: { gte: startOfMonth, lte: endOfMonth },
+        },
+        _sum: { amount: true },
+      })
+      .then((r) => Number(r._sum.amount ?? 0)),
     prisma.charge.aggregate({
       where: {
         userId,
-        status: 'paid',
-        paidAt: { gte: startOfMonth, lte: endOfMonth },
+        status: 'pending',
+        dueDate: { gte: startOfDay },
       },
       _sum: { amount: true },
     }),
@@ -41,7 +72,7 @@ export async function summary(
       where: {
         userId,
         status: 'pending',
-        dueDate: { gte: startOfMonth, lte: endOfMonth },
+        dueDate: { lt: startOfDay },
       },
       _sum: { amount: true },
     }),
@@ -51,26 +82,39 @@ export async function summary(
   return {
     data: {
       todayAppointments,
-      monthReceived: Number(monthReceived._sum.amount ?? 0),
+      monthReceived: receivedWithPaidAt + receivedWithoutPaidAt,
       monthPending: Number(monthPending._sum.amount ?? 0),
+      monthOverdue: Number(monthOverdue._sum.amount ?? 0),
       activeClientsCount,
     },
   };
 }
 
 export async function upcoming(
-  userId: string
+  userId: string,
+  options?: { todayOnly?: boolean }
 ): Promise<ServiceResult<unknown[]>> {
   const now = new Date();
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const endOfDay = new Date(startOfDay);
+  endOfDay.setDate(endOfDay.getDate() + 1);
+
+  const where: Parameters<typeof prisma.appointment.findMany>[0]['where'] = {
+    userId,
+    status: { in: ['scheduled', 'confirmed'] },
+  };
+
+  if (options?.todayOnly) {
+    where.scheduledAt = { gte: startOfDay, lt: endOfDay };
+  } else {
+    where.scheduledAt = { gte: now };
+  }
+
   const list = await prisma.appointment.findMany({
-    where: {
-      userId,
-      scheduledAt: { gte: now },
-      status: { in: ['scheduled', 'confirmed'] },
-    },
+    where,
     include: { client: true, service: true },
     orderBy: { scheduledAt: 'asc' },
-    take: 5,
+    take: options?.todayOnly ? 50 : 5,
   });
   return { data: list };
 }

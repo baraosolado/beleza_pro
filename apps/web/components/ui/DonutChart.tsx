@@ -12,6 +12,7 @@ type DonutChartProps = {
   segments: DonutSegment[];
   centerLabel: string;
   centerValue: string;
+  formatSegmentValue?: (value: number) => string;
   className?: string;
 };
 
@@ -19,8 +20,10 @@ export function DonutChart({
   segments,
   centerLabel,
   centerValue,
+  formatSegmentValue,
   className,
 }: DonutChartProps): React.ReactElement {
+  const fmt = formatSegmentValue ?? ((n: number) => n.toLocaleString('pt-BR'));
   const total = segments.reduce((s, seg) => s + seg.value, 0);
   let acc = 0;
   const gradientParts = segments
@@ -65,7 +68,7 @@ export function DonutChart({
               </span>
             </div>
             <span className="text-sm font-bold text-slate-800">
-              {seg.value.toLocaleString('pt-BR')}
+              {fmt(seg.value)}
             </span>
           </div>
         ))}

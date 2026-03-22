@@ -55,6 +55,12 @@ model User {
   resetPasswordToken         String?   @map("reset_password_token") @db.VarChar(255)
   resetPasswordExpiresAt     DateTime? @map("reset_password_expires_at") @db.Timestamptz
   businessName               String?   @map("business_name") @db.VarChar(255)
+  businessCategory           String?   @map("business_category") @db.VarChar(100)
+  businessInstagram          String?   @map("business_instagram") @db.VarChar(100)
+  businessEmail              String?   @map("business_email") @db.VarChar(255)
+  businessPhone              String?   @map("business_phone") @db.VarChar(20)
+  businessPixKey             String?   @map("business_pix_key") @db.VarChar(255)
+  businessAddress            String?   @map("business_address") @db.Text
   workingHours               Json?     @map("working_hours")
   createdAt                  DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt                  DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
@@ -65,6 +71,8 @@ model User {
   charges               Charge[]
   whatsappMessages      WhatsAppMessage[]
   notificationsLogs     NotificationsLog[]
+  products              Product[]
+  productCategories     ProductCategory[]
 
   @@map("users")
 }
@@ -189,3 +197,42 @@ model NotificationsLog {
   @@index([userId])
   @@map("notifications_log")
 }
+
+model Product {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId            String   @map("user_id") @db.Uuid
+  name              String   @db.VarChar(255)
+  description       String?  @db.Text
+  category          String?  @db.VarChar(100)
+  price             Decimal  @db.Decimal(10, 2)
+  costPrice         Decimal? @map("cost_price") @db.Decimal(10, 2)
+  stockQuantity     Int      @map("stock_quantity") @default(0)
+  lowStockAlert     Boolean  @map("low_stock_alert") @default(false)
+  lowStockThreshold Int?     @map("low_stock_threshold")
+  sku               String?  @db.VarChar(100)
+  imageUrl          String?  @map("image_url") @db.Text
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("products")
+}
+
+model ProductCategory {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  name        String   @db.VarChar(100)
+  description String?  @db.Text
+  color       String?  @db.VarChar(20)
+  icon        String?  @db.VarChar(50)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("product_categories")
+}
+

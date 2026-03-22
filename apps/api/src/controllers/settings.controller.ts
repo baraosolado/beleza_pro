@@ -8,6 +8,12 @@ const updateSchema = z.object({
   name: z.string().min(1).max(255).optional(),
   phone: z.string().max(20).optional(),
   businessName: z.string().max(255).optional(),
+  businessCategory: z.string().max(100).optional(),
+  businessInstagram: z.string().max(100).optional(),
+  businessEmail: z.string().email().max(255).optional().or(z.literal('')),
+  businessPhone: z.string().max(20).optional(),
+  businessPixKey: z.string().max(255).optional(),
+  businessAddress: z.string().max(1000).optional(),
   workingHours: z.record(z.string(), z.unknown()).optional(),
 });
 

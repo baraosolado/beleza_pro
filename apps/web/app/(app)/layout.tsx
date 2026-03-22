@@ -14,7 +14,7 @@ export default function AppLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, logout } = useAuth();
   const token = typeof window !== 'undefined' ? getAccessToken() : null;
 
   useEffect(() => {
@@ -25,8 +25,8 @@ export default function AppLayout({
 
   if (!isLoading && token === null) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background-light">
-        <p className="text-slate-500">Carregando...</p>
+      <div className="flex min-h-screen items-center justify-center bg-app-bg">
+        <p className="text-sm text-ink-secondary">Carregando...</p>
       </div>
     );
   }
@@ -35,7 +35,14 @@ export default function AppLayout({
     user?.plan === 'pro' ? 'Pro' : user?.plan === 'trial' ? 'Trial' : 'Basic';
 
   return (
-    <AppShell userName={user?.name ?? ''} userPlan={planLabel}>
+    <AppShell
+      userName={user?.name ?? ''}
+      userPlan={planLabel}
+      onLogout={() => {
+        logout();
+        router.replace('/auth/login');
+      }}
+    >
       {children}
     </AppShell>
   );

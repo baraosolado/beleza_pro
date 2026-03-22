@@ -1,9 +1,11 @@
 'use client';
 
+import { Loader2 } from 'lucide-react';
+
 import { cn } from '@/lib/utils';
 
 type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: 'primary' | 'outline' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger-ghost';
   isLoading?: boolean;
   type?: 'button' | 'submit' | 'reset';
 };
@@ -18,13 +20,18 @@ export function Button({
   ...props
 }: ButtonProps): React.ReactElement {
   const base =
-    'inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition-all disabled:opacity-50';
+    'inline-flex h-9 items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-40';
   const variants = {
     primary:
-      'bg-primary hover:bg-primary/90 text-white px-5 py-2.5 shadow-md shadow-primary/20',
+      'bg-primary text-white shadow-btn-primary hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-light focus-visible:ring-offset-2',
+    secondary:
+      'border border-border bg-app-surface text-ink-primary hover:bg-primary-light/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-light',
     outline:
-      'flex items-center gap-2 px-6 py-3 border-2 border-primary text-primary rounded-xl hover:bg-primary/5',
-    ghost: 'hover:bg-white/5 text-white/70 hover:text-white',
+      'border border-border bg-app-surface text-ink-primary hover:border-primary/30 hover:bg-primary-light/40',
+    ghost:
+      'bg-transparent text-primary hover:bg-primary-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-light',
+    'danger-ghost':
+      'bg-transparent text-danger hover:bg-danger-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger-light',
   };
 
   return (
@@ -34,7 +41,20 @@ export function Button({
       disabled={disabled ?? isLoading}
       {...props}
     >
-      {isLoading ? 'Carregando...' : children}
+      {isLoading ? (
+        <>
+          <Loader2
+            className={cn(
+              'size-4 shrink-0 animate-spin',
+              variant === 'primary' ? 'text-white' : 'text-ink-secondary'
+            )}
+            aria-hidden
+          />
+          <span>Carregando...</span>
+        </>
+      ) : (
+        children
+      )}
     </button>
   );
 }

@@ -13,6 +13,9 @@ import { appointmentsRoutes } from './routes/appointments.routes.js';
 import { chargesRoutes } from './routes/charges.routes.js';
 import { clientsRoutes } from './routes/clients.routes.js';
 import { dashboardRoutes } from './routes/dashboard.routes.js';
+import { sendInvoiceRoutes } from './routes/sendInvoice.routes.js';
+import { productsRoutes } from './routes/products.routes.js';
+import { productCategoriesRoutes } from './routes/productCategories.routes.js';
 import { settingsRoutes } from './routes/settings.routes.js';
 import { servicesRoutes } from './routes/services.routes.js';
 import { webhooksRoutes } from './routes/webhooks.routes.js';
@@ -98,9 +101,12 @@ async function build() {
       scope.register(authRoutes, { prefix: '/auth' });
       scope.register(clientsRoutes, { prefix: '/clients' });
       scope.register(servicesRoutes, { prefix: '/services' });
+      scope.register(productsRoutes, { prefix: '/products' });
+      scope.register(productCategoriesRoutes, { prefix: '/product-categories' });
       scope.register(appointmentsRoutes, { prefix: '/appointments' });
       scope.register(chargesRoutes, { prefix: '/charges' });
       scope.register(dashboardRoutes, { prefix: '/dashboard' });
+      scope.register(sendInvoiceRoutes, { prefix: '/send-invoice' });
       scope.register(settingsRoutes, { prefix: '/settings' });
       scope.register(webhooksRoutes, { prefix: '/webhooks' });
     },

@@ -29,14 +29,24 @@ const MS_24H = 24 * 60 * 60 * 1000;
 function getWeekRange(weekStr: string): { start: Date; end: Date } | null {
   const match = weekStr.match(/^(\d{4})-W(\d{2})$/);
   if (!match) return null;
+
   const year = parseInt(match[1], 10);
   const week = parseInt(match[2], 10);
-  const firstDay = new Date(year, 0, 1);
-  const dayOfWeek = firstDay.getDay();
-  const diff = (dayOfWeek <= 3 ? 1 - dayOfWeek : 8 - dayOfWeek) + (week - 1) * 7;
-  const start = new Date(year, 0, diff);
+  if (!Number.isFinite(year) || !Number.isFinite(week) || week < 1 || week > 53) {
+    return null;
+  }
+
+  const reference = new Date(year, 0, 4);
+  const referenceDay = reference.getDay() || 7;
+  const mondayOfWeek1 = new Date(reference);
+  mondayOfWeek1.setDate(reference.getDate() - (referenceDay - 1));
+
+  const start = new Date(mondayOfWeek1);
+  start.setDate(mondayOfWeek1.getDate() + (week - 1) * 7);
+
   const end = new Date(start);
-  end.setDate(end.getDate() + 7);
+  end.setDate(start.getDate() + 7);
+
   return { start, end };
 }
 

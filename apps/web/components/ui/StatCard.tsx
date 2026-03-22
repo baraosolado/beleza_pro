@@ -9,7 +9,7 @@ type StatCardProps = {
   value: string | number;
   subtitle?: React.ReactNode;
   icon: LucideIcon;
-  variant?: 'violet' | 'emerald' | 'amber';
+  variant?: 'rose' | 'emerald' | 'amber';
   className?: string;
 };
 
@@ -18,38 +18,38 @@ export function StatCard({
   value,
   subtitle,
   icon: Icon,
-  variant = 'violet',
+  variant = 'rose',
   className,
 }: StatCardProps): React.ReactElement {
   const iconVariants = {
-    violet: 'bg-primary/10 text-primary',
-    emerald: 'bg-emerald-100 text-emerald-600',
-    amber: 'bg-amber-100 text-amber-600',
+    rose: 'bg-primary-muted text-primary-hover',
+    emerald: 'bg-success-light text-emerald-700',
+    amber: 'bg-warning-light text-amber-800',
   };
 
   return (
     <div
       className={cn(
-        'bg-white p-6 rounded-xl border border-slate-200 shadow-sm transition-all hover:shadow-md',
+        'rounded-xl border border-border bg-app-surface p-5 shadow-card transition-shadow duration-150 hover:shadow-card-hover',
         className
       )}
     >
-      <div className="mb-4 flex items-center justify-between">
-        <span className="font-medium text-slate-500">{label}</span>
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <span className="text-xs font-medium uppercase tracking-wider text-ink-muted">
+          {label}
+        </span>
         <span
           className={cn(
-            'flex items-center justify-center p-2 rounded-lg',
+            'flex size-9 shrink-0 items-center justify-center rounded-lg',
             iconVariants[variant]
           )}
         >
-          <Icon className="size-5" />
+          <Icon className="size-[18px]" />
         </span>
       </div>
-      <p className="text-3xl font-bold text-slate-800">{value}</p>
+      <p className="metric text-ink-primary">{value}</p>
       {subtitle ? (
-        <div className="mt-1 flex items-center gap-1 text-sm font-medium text-emerald-600">
-          {subtitle}
-        </div>
+        <div className="mt-2 text-xs font-medium text-success">{subtitle}</div>
       ) : null}
     </div>
   );

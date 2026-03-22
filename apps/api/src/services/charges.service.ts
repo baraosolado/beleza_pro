@@ -12,6 +12,7 @@ type CreateInput = {
   amount: number;
   description?: string;
   dueDate: Date;
+  productId?: string;
 };
 
 type UpdateInput = {
@@ -112,19 +113,48 @@ export async function create(
   });
   if (!client) return { error: 'Cliente não encontrado', code: 'NOT_FOUND', statusCode: 404 };
 
-  const charge = await prisma.charge.create({
-    data: {
-      userId,
-      appointmentId: input.appointmentId,
-      clientId: input.clientId,
-      amount: input.amount,
-      description: input.description,
-      dueDate: input.dueDate,
-      stripePaymentIntentId: null,
-      stripePixQrcode: null,
-      stripePixCopyPaste: null,
-    },
-    include: { client: true, appointment: true },
+  const charge = await prisma.$transaction(async (tx) => {
+    if (input.productId) {
+      const product = await tx.product.findFirst({
+        where: { id: input.productId, userId },
+      });
+      if (!product) {
+        return Promise.reject({
+          error: 'Produto não encontrado',
+          code: 'PRODUCT_NOT_FOUND',
+          statusCode: 404,
+        } as ServiceResult<unknown>);
+      }
+      if (product.stockQuantity <= 0) {
+        return Promise.reject({
+          error: 'Estoque insuficiente para registrar venda deste produto',
+          code: 'INSUFFICIENT_STOCK',
+          statusCode: 400,
+        } as ServiceResult<unknown>);
+      }
+
+      await tx.product.update({
+        where: { id: product.id },
+        data: {
+          stockQuantity: product.stockQuantity - 1,
+        },
+      });
+    }
+
+    return tx.charge.create({
+      data: {
+        userId,
+        appointmentId: input.appointmentId,
+        clientId: input.clientId,
+        amount: input.amount,
+        description: input.description,
+        dueDate: input.dueDate,
+        stripePaymentIntentId: null,
+        stripePixQrcode: null,
+        stripePixCopyPaste: null,
+      },
+      include: { client: true, appointment: true },
+    });
   });
 
   const instanceId = user.whatsappInstanceId;
@@ -166,6 +196,7 @@ export async function update(
   });
   if (!existing) return { error: 'Cobrança não encontrada', code: 'NOT_FOUND', statusCode: 404 };
 
+  const isMarkedPaid = input.status === 'paid' && existing.status !== 'paid';
   const charge = await prisma.charge.update({
     where: { id },
     data: {
@@ -173,6 +204,7 @@ export async function update(
       description: input.description ?? existing.description,
       dueDate: input.dueDate ?? existing.dueDate,
       status: input.status ?? existing.status,
+      ...(isMarkedPaid && !existing.paidAt && { paidAt: new Date() }),
     },
   });
 
