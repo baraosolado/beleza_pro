@@ -2,7 +2,7 @@
 
 import { format, getISOWeek, getISOWeekYear } from 'date-fns';
 import { useQuery } from '@tanstack/react-query';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { NewAppointmentModal } from '@/components/appointments/NewAppointmentModal';
@@ -23,6 +23,14 @@ export default function SchedulePage() {
   const [newAppointmentOpen, setNewAppointmentOpen] = useState(false);
 
   const openNewAppointment = useCallback(() => setNewAppointmentOpen(true), []);
+
+  /** Celular: visão “Dia” evita grade semanal estreita; desktop mantém semana. */
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.matchMedia('(max-width: 1023px)').matches) {
+      setViewMode('day');
+    }
+  }, []);
 
   const weekParam = formatWeek(currentDate);
 

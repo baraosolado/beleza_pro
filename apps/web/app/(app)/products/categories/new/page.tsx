@@ -57,7 +57,7 @@ export default function NewProductCategoryPage(): React.ReactElement {
         title="Produtos"
         subtitle="Organize seus produtos em categorias claras para facilitar o dia a dia"
       />
-      <main className="flex-1 overflow-y-auto bg-slate-50 p-8 dark:bg-slate-950/40">
+      <main className="flex-1 overflow-y-auto bg-slate-50 p-4 sm:p-6 lg:p-8 dark:bg-slate-950/40">
         <div className="mx-auto flex w-full max-w-3xl flex-col items-center">
           <div className="mb-8 flex w-full items-center justify-between">
             <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">

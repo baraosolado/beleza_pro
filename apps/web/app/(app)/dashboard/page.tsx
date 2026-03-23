@@ -80,7 +80,7 @@ export default function DashboardPage() {
         actionLabel="Novo Agendamento"
         onAction={openNewAppointment}
       />
-      <main className="flex-1 overflow-auto bg-app-bg p-8">
+      <main className="flex-1 overflow-auto bg-app-bg p-4 sm:p-6 lg:p-8">
         <div className="mx-auto w-full max-w-content space-y-6">
           {/* Métricas */}
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">

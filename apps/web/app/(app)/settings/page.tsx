@@ -325,7 +325,7 @@ export default function SettingsPage() {
   return (
     <>
       <Header title="Configurações do Sistema" />
-      <main className="flex flex-1 flex-col gap-8 overflow-y-auto p-8">
+      <main className="flex flex-1 flex-col gap-8 overflow-y-auto p-4 sm:p-6 lg:p-8">
         <div className="flex flex-1 min-h-0 gap-8">
           {/* Internal Tab Navigation Sidebar */}
           <nav className="w-64 h-fit shrink-0 rounded-2xl border border-border bg-white p-2 shadow-sm dark:border-slate-800 dark:bg-slate-900">
@@ -627,7 +627,7 @@ export default function SettingsPage() {
                     Defina seus horários de trabalho e intervalos de descanso para cada dia da semana.
                   </p>
                 </div>
-                <div className="flex-1 overflow-y-auto p-8 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200 dark:[&::-webkit-scrollbar-thumb]:bg-slate-700">
+                <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200 dark:[&::-webkit-scrollbar-thumb]:bg-slate-700">
                   <div className="space-y-4">
                     {DAYS.map((day) => {
                       const value = workingHours[day.key];

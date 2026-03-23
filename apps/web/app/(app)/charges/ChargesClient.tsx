@@ -215,7 +215,7 @@ export function ChargesClient() {
           setTimeout(() => setToast(null), 3000);
         }}
       />
-      <main className="flex-1 overflow-auto p-8">
+      <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
         {/* Filtro de período */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-2 rounded-lg border border-border bg-slate-50 px-4 py-2.5 text-sm text-slate-700">

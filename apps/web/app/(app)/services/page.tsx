@@ -170,7 +170,7 @@ export default function ServicesPage() {
         actionLabel="Novo Serviço"
         onAction={openCreate}
       />
-      <main className="flex-1 overflow-auto p-8">
+      <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
         {toast && (
           <p
             className={

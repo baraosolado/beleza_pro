@@ -1,6 +1,10 @@
 'use client';
 
-import { Sidebar } from './Sidebar';
+import { MobileNavDrawer } from '@/components/layout/MobileNavDrawer';
+import { MobileNavProvider } from '@/components/layout/MobileNavContext';
+import { MobileTopBar } from '@/components/layout/MobileTopBar';
+import { Sidebar } from '@/components/layout/Sidebar';
+import { cn } from '@/lib/utils';
 
 type AppShellProps = {
   userName?: string;
@@ -16,11 +20,21 @@ export function AppShell({
   children,
 }: AppShellProps): React.ReactElement {
   return (
-    <div className="flex h-screen overflow-hidden bg-app-bg">
-      <Sidebar userName={userName} userPlan={userPlan} onLogout={onLogout} />
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden pb-16 lg:pb-0">
-        {children}
+    <MobileNavProvider>
+      <div className="flex h-dvh max-h-dvh min-h-0 overflow-hidden bg-app-bg">
+        <Sidebar userName={userName} userPlan={userPlan} onLogout={onLogout} />
+        <div
+          className={cn(
+            'relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden',
+            /* Espaço da barra fixa no mobile (altura 3rem + safe area iOS) */
+            'pt-[calc(3rem+env(safe-area-inset-top,0px))] lg:pt-0'
+          )}
+        >
+          <MobileTopBar />
+          <MobileNavDrawer userName={userName} userPlan={userPlan} onLogout={onLogout} />
+          {children}
+        </div>
       </div>
-    </div>
+    </MobileNavProvider>
   );
 }

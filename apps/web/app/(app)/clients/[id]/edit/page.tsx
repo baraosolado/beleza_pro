@@ -89,7 +89,7 @@ export default function EditClientPage() {
     return (
       <>
         <Header title="Editar cliente" />
-        <main className="flex-1 overflow-auto p-8">
+        <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
           <p className="text-slate-500">Carregando...</p>
         </main>
       </>
@@ -99,7 +99,7 @@ export default function EditClientPage() {
   return (
     <>
       <Header title="Editar cliente" subtitle={client.name} />
-      <main className="flex-1 overflow-auto p-8">
+      <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
         <nav className="mb-6 text-sm text-slate-500">
           <Link href="/clients" className="hover:text-primary">
             Clientes

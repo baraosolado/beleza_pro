@@ -49,7 +49,7 @@ export default function SettingsWhatsAppPage() {
   return (
     <>
       <Header title="WhatsApp" />
-      <main className="flex-1 min-h-0 overflow-y-auto p-8">
+      <main className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 lg:p-8">
         <div className="mx-auto w-full max-w-4xl">
           {/* Breadcrumb */}
           <nav className="mb-8 flex items-center gap-2 text-sm text-slate-400">

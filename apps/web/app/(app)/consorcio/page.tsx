@@ -659,7 +659,7 @@ export default function ConsorcioPage() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-7xl flex-1 space-y-8 overflow-y-auto p-6 pb-24 lg:p-8 lg:pb-8">
+      <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 overflow-y-auto p-4 pb-4 sm:space-y-8 sm:p-6 lg:p-8 lg:pb-8">
         <AddParticipantModal open={addModalOpen} onOpenChange={setAddModalOpen} />
 
         {drawResultModal && (

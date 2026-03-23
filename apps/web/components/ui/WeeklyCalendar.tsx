@@ -495,10 +495,10 @@ function CalendarHeader({
   onNewAppointment?: () => void;
 }) {
   return (
-    <div className="flex shrink-0 items-center justify-between border-b border-slate-100 bg-white px-6 py-3">
-      <div className="flex items-center gap-3">
-        <h2 className="text-xl font-bold text-slate-800">Agenda</h2>
-        <div className="flex items-center gap-1">
+    <div className="flex shrink-0 flex-col gap-3 border-b border-slate-100 bg-white px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+        <h2 className="shrink-0 text-lg font-bold text-slate-800 sm:text-xl">Agenda</h2>
+        <div className="flex min-w-0 flex-wrap items-center gap-1">
           <button
             type="button"
             onClick={onPrev}
@@ -506,7 +506,7 @@ function CalendarHeader({
           >
             <ChevronLeft className="size-4" />
           </button>
-          <span className="min-w-[130px] text-center text-sm font-semibold capitalize text-slate-700">
+          <span className="min-w-0 flex-1 text-center text-xs font-semibold capitalize text-slate-700 sm:min-w-[130px] sm:flex-none sm:text-sm">
             {title}
           </span>
           <button
@@ -526,7 +526,7 @@ function CalendarHeader({
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
         {onViewChange && (
           <div className="flex rounded-lg border border-slate-200 bg-slate-50 p-0.5">
             {(['week', 'day', 'month'] as const).map((v) => (
@@ -535,7 +535,7 @@ function CalendarHeader({
                 type="button"
                 onClick={() => onViewChange(v)}
                 className={cn(
-                  'rounded-md px-3 py-1.5 text-xs font-semibold transition-all',
+                  'rounded-md px-2 py-1.5 text-[11px] font-semibold transition-all sm:px-3 sm:text-xs',
                   viewMode === v
                     ? 'bg-white text-slate-800 shadow-sm'
                     : 'text-slate-500 hover:text-slate-700'
@@ -550,10 +550,11 @@ function CalendarHeader({
           <button
             type="button"
             onClick={onNewAppointment}
-            className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white shadow-btn-primary transition-all hover:bg-primary-hover hover:shadow-btn-primary-lg"
+            className="flex items-center gap-1.5 rounded-xl bg-primary px-3 py-2 text-xs font-semibold text-white shadow-btn-primary transition-all hover:bg-primary-hover hover:shadow-btn-primary-lg sm:gap-2 sm:px-4 sm:text-sm"
           >
-            <Plus className="size-4" />
-            Novo Agendamento
+            <Plus className="size-4 shrink-0" />
+            <span className="inline sm:hidden">Novo</span>
+            <span className="hidden sm:inline">Novo Agendamento</span>
           </button>
         )}
       </div>
@@ -585,7 +586,7 @@ function MiniSidebar({
   const count = todayCount ?? 0;
 
   return (
-    <aside className="flex w-[260px] shrink-0 flex-col gap-6 border-l border-slate-100 bg-white p-5 overflow-y-auto">
+    <aside className="hidden w-[260px] shrink-0 flex-col gap-6 overflow-y-auto border-l border-slate-100 bg-white p-5 lg:flex">
       {/* Mini calendar */}
       <div>
         <div className="mb-3 flex items-center justify-between">

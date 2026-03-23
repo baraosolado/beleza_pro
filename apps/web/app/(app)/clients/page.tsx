@@ -93,7 +93,7 @@ export default function ClientsPage() {
         actionLabel="Nova Cliente"
         onAction={openNewClient}
       />
-      <main className="flex-1 overflow-auto p-8">
+      <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
         {/* Filtros, busca e ordenação */}
         <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
@@ -115,7 +115,7 @@ export default function ClientsPage() {
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-            <div className="relative min-w-[260px]">
+            <div className="relative w-full min-w-0 sm:min-w-[260px]">
               <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
               <Input
                 placeholder="Buscar cliente..."

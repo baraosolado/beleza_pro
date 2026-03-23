@@ -148,7 +148,7 @@ export default function EditProductPage(): React.ReactElement {
   return (
     <>
       <Header title="Produtos" subtitle="Edite um item físico do seu estoque" />
-      <main className="flex-1 overflow-y-auto bg-slate-50 p-8 dark:bg-slate-950/40">
+      <main className="flex-1 overflow-y-auto bg-slate-50 p-4 sm:p-6 lg:p-8 dark:bg-slate-950/40">
         <div className="mx-auto w-full max-w-5xl space-y-8">
           {/* Breadcrumb / título interno */}
           <div className="flex flex-wrap items-center justify-between gap-4">

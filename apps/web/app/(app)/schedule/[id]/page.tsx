@@ -102,7 +102,7 @@ export default function AppointmentDetailPage() {
     return (
       <>
         <Header title="Agendamento" subtitle="Carregando..." />
-        <main className="flex-1 overflow-auto p-8">
+        <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
           <Skeleton className="h-64 w-full rounded-xl" />
         </main>
       </>
@@ -117,7 +117,7 @@ export default function AppointmentDetailPage() {
   return (
     <>
       <Header title="Agendamento" subtitle={appointment.service.name} />
-      <main className="flex-1 overflow-auto p-8">
+      <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
         <div className="mx-auto max-w-2xl space-y-6">
           <Link
             href="/schedule"

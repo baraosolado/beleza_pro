@@ -230,7 +230,7 @@ export default function SendInvoicePage() {
   return (
     <>
       <Header title="Enviar Conta" />
-      <main className="flex-1 min-h-0 overflow-y-auto p-8">
+      <main className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 lg:p-8">
         <div className="mx-auto max-w-6xl">
           {/* Header */}
           <header className="mb-8 flex flex-wrap items-end justify-between gap-4">

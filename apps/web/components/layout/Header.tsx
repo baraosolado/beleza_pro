@@ -36,25 +36,25 @@ export function Header({
   return (
     <header
       className={cn(
-        'sticky top-0 z-30 flex h-[60px] shrink-0 items-center justify-between border-b border-border bg-app-surface px-8',
+        'sticky top-0 z-30 flex min-h-[52px] shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border bg-app-surface px-4 py-2 sm:min-h-[60px] sm:px-6 sm:py-0 lg:px-8',
         className
       )}
     >
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1 basis-[min(100%,12rem)] sm:basis-auto">
         {breadcrumb ? (
           <p className="mb-0.5 text-xs text-ink-muted">{breadcrumb}</p>
         ) : null}
-        <h1 className="text-header-title text-ink-primary tracking-tight">
+        <h1 className="text-base font-bold tracking-tight text-ink-primary sm:text-header-title">
           {title}
         </h1>
         {subtitle ? (
-          <p className="mt-0.5 text-sm text-ink-secondary">{subtitle}</p>
+          <p className="mt-0.5 line-clamp-2 text-xs text-ink-secondary sm:text-sm">{subtitle}</p>
         ) : null}
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
         <button
           type="button"
-          className="relative rounded-lg p-2 text-ink-secondary transition-colors hover:bg-primary-light hover:text-ink-primary"
+          className="relative hidden rounded-lg p-2 text-ink-secondary transition-colors hover:bg-primary-light hover:text-ink-primary sm:block"
           aria-label="Notificações"
         >
           <Bell className="size-5" />
@@ -65,7 +65,7 @@ export function Header({
         </button>
         <div
           className={cn(
-            'flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white',
+            'hidden size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white sm:flex',
             displayName ? avatarClassForInitial(displayName) : 'bg-primary-muted text-primary-hover'
           )}
           title={displayName || 'Usuário'}
@@ -73,7 +73,11 @@ export function Header({
           {initials || '—'}
         </div>
         {actionLabel && onAction ? (
-          <Button onClick={onAction} variant="primary" className="shrink-0">
+          <Button
+            onClick={onAction}
+            variant="primary"
+            className="max-w-[min(100%,11rem)] shrink-0 truncate px-3 text-xs sm:max-w-none sm:px-4 sm:text-sm"
+          >
             {actionLabel}
           </Button>
         ) : null}
