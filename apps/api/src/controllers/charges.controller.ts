@@ -15,6 +15,7 @@ const createSchema = z.object({
     .union([z.string().uuid(), z.literal('')])
     .optional()
     .transform((v) => (v && v !== '' ? v : undefined)),
+  sendWhatsappReminder: z.boolean().optional(),
 });
 
 const updateSchema = z.object({

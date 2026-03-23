@@ -183,6 +183,7 @@ export function NewChargeModal({
         dueDate: body.dueDate,
         ...(description && { description }),
         ...(productId && { productId }),
+        sendWhatsappReminder,
       });
     },
     onSuccess: () => {

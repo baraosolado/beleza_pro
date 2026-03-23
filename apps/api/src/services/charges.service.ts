@@ -13,6 +13,8 @@ type CreateInput = {
   description?: string;
   dueDate: Date;
   productId?: string;
+  /** Se false, não enfileira lembrete WhatsApp (cobrança só no sistema). */
+  sendWhatsappReminder?: boolean;
 };
 
 type UpdateInput = {
@@ -159,8 +161,11 @@ export async function create(
   });
 
   const instanceId = user.whatsappInstanceId;
-  if (instanceId) {
-    const message = `Olá ${client.name}! Você tem uma cobrança de R$ ${input.amount.toFixed(2).replace('.', ',')}. Acesse o link para pagar.`;
+  const shouldNotifyWhatsapp =
+    input.sendWhatsappReminder !== false && Boolean(instanceId);
+  if (shouldNotifyWhatsapp && instanceId) {
+    const dueStr = input.dueDate.toLocaleDateString('pt-BR');
+    const message = `Olá ${client.name}! Registramos uma cobrança de R$ ${input.amount.toFixed(2).replace('.', ',')} com vencimento em ${dueStr}. Qualquer dúvida, fale com a gente.`;
     try {
       await addWhatsAppJob({
         userId,
