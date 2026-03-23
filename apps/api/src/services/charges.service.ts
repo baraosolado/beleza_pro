@@ -160,15 +160,22 @@ export async function create(
   const instanceId = user.whatsappInstanceId;
   if (instanceId) {
     const message = `Olá ${client.name}! Você tem uma cobrança de R$ ${input.amount.toFixed(2).replace('.', ',')}. Acesse o link para pagar.`;
-    await addWhatsAppJob({
-      userId,
-      instanceId,
-      phone: client.phone,
-      message,
-      type: 'charge',
-      clientId: client.id,
-      chargeId: charge.id,
-    });
+    try {
+      await addWhatsAppJob({
+        userId,
+        instanceId,
+        phone: client.phone,
+        message,
+        type: 'charge',
+        clientId: client.id,
+        chargeId: charge.id,
+      });
+    } catch (err) {
+      console.warn(
+        '[charges] Cobrança criada, mas falha ao enfileirar WhatsApp (Redis?).',
+        err
+      );
+    }
   }
 
   return { data: charge };

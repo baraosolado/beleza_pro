@@ -14,6 +14,8 @@
     "build:web": "npm run build -w types && npm run build -w web",
     "db:generate": "npm run db:generate -w api",
     "db:migrate": "dotenv -e .env -- npm exec -w api -- prisma migrate dev --schema=src/db/prisma/schema.prisma",
+    "db:migrate:deploy": "dotenv -e .env -- npm exec -w api -- prisma migrate deploy --schema=src/db/prisma/schema.prisma",
+    "db:seed:dev-user": "dotenv -e .env -- npm run db:seed:dev-user -w api",
     "db:studio": "dotenv -e .env -- npm exec -w api -- prisma studio --schema=src/db/prisma/schema.prisma"
   },
   "engines": {

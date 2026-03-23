@@ -1,0 +1,73 @@
+{
+  "name": "Beleza Pro — Consórcio (pós-sorteio / vídeo WhatsApp)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "beleza-consorcio-draw",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "a1f0c8e0-1c1a-4b8e-9f2a-bebeza01web",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [220, 300],
+      "webhookId": "beleza-pro-consorcio-draw"
+    },
+    {
+      "parameters": {
+        "jsCode": "// evento === consorcio_sorteio_solicitacao — o SaaS envia participantesElegiveis.\n// Você deve: sortear (ou chamar sua API), gerar vídeo, e responder com ganhadoraNome = nome completo de uma elegível.\n\nconst body = $input.first().json.body ?? $input.first().json;\nconst eleg = body.participantesElegiveis ?? [];\nif (!eleg.length) {\n  return [{ json: { success: false, message: 'Sem elegíveis no payload' } }];\n}\nconst pick = eleg[Math.floor(Math.random() * eleg.length)];\n\nreturn [\n  {\n    json: {\n      success: true,\n      ganhadoraNome: pick.nome,\n      message:\n        'Substitua por fluxo real: vídeo (videoUrl ou videoBase64). Este é sorteio de demonstração.'\n    }\n  }\n];"
+      },
+      "id": "a1f0c8e0-1c1a-4b8e-9f2a-bebeza02code",
+      "name": "Sua automação (vídeo / WhatsApp)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {}
+      },
+      "id": "a1f0c8e0-1c1a-4b8e-9f2a-bebeza03resp",
+      "name": "Responder SaaS",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [700, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Sua automação (vídeo / WhatsApp)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sua automação (vídeo / WhatsApp)": {
+      "main": [
+        [
+          {
+            "node": "Responder SaaS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "meta": {
+    "templateId": "beleza-pro-consorcio-pos-sorteio"
+  }
+}

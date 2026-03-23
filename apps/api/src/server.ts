@@ -1,5 +1,6 @@
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
+import multipart from '@fastify/multipart';
 import sensible from '@fastify/sensible';
 import jwt from '@fastify/jwt';
 import Fastify from 'fastify';
@@ -12,6 +13,7 @@ import { authRoutes } from './routes/auth.routes.js';
 import { appointmentsRoutes } from './routes/appointments.routes.js';
 import { chargesRoutes } from './routes/charges.routes.js';
 import { clientsRoutes } from './routes/clients.routes.js';
+import { consorcioRoutes } from './routes/consorcio.routes.js';
 import { dashboardRoutes } from './routes/dashboard.routes.js';
 import { sendInvoiceRoutes } from './routes/sendInvoice.routes.js';
 import { productsRoutes } from './routes/products.routes.js';
@@ -20,6 +22,7 @@ import { settingsRoutes } from './routes/settings.routes.js';
 import { servicesRoutes } from './routes/services.routes.js';
 import { webhooksRoutes } from './routes/webhooks.routes.js';
 
+import { isRedisEnabled } from './jobs/queue.js';
 import './jobs/whatsapp.job.js';
 import './jobs/reminders.job.js';
 
@@ -31,7 +34,7 @@ function isAllowedOrigin(origin: string | undefined): boolean {
 }
 
 async function build() {
-  const app = Fastify({ logger: true });
+  const app = Fastify({ logger: true, bodyLimit: 200 * 1024 * 1024 }); // 200MB (JSON base64: PDFs)
 
   // CORS: aplicar antes de qualquer outro plugin para preflight e respostas de erro
   app.addHook('onRequest', (request, reply, done) => {
@@ -77,6 +80,13 @@ async function build() {
   });
   await app.register(helmet, { contentSecurityPolicy: false });
   await app.register(sensible);
+  await app.register(multipart, {
+    limits: {
+      fileSize: 65 * 1024 * 1024,
+      files: 1,
+      fields: 24,
+    },
+  });
   await app.register(jwt, {
     secret: env.JWT_SECRET,
   });
@@ -96,6 +106,27 @@ async function build() {
 
   app.get('/health', async () => ({ status: 'ok' }));
 
+  /** Diagnóstico: confirma se DATABASE_URL alcança o Postgres */
+  app.get('/health/db', async (_request, reply) => {
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      return { status: 'ok', database: 'connected' };
+    } catch (err) {
+      const isDev = env.NODE_ENV === 'development';
+      const msg =
+        err instanceof Error ? err.message : 'Erro desconhecido ao conectar';
+      reply.status(503);
+      return {
+        status: 'error',
+        database: 'disconnected',
+        message: msg,
+        hint: isDev
+          ? 'Suba o Postgres (ex.: docker compose up -d postgres) e confira DATABASE_URL no .env da raiz.'
+          : undefined,
+      };
+    }
+  });
+
   await app.register(
     async (scope) => {
       scope.register(authRoutes, { prefix: '/auth' });
@@ -105,6 +136,7 @@ async function build() {
       scope.register(productCategoriesRoutes, { prefix: '/product-categories' });
       scope.register(appointmentsRoutes, { prefix: '/appointments' });
       scope.register(chargesRoutes, { prefix: '/charges' });
+      scope.register(consorcioRoutes, { prefix: '/consorcio' });
       scope.register(dashboardRoutes, { prefix: '/dashboard' });
       scope.register(sendInvoiceRoutes, { prefix: '/send-invoice' });
       scope.register(settingsRoutes, { prefix: '/settings' });
@@ -120,6 +152,17 @@ const start = async () => {
   try {
     const app = await build();
     await app.listen({ port: 3001, host: '0.0.0.0' });
+    if (env.NODE_ENV === 'development') {
+      if (isRedisEnabled) {
+        app.log.warn(
+          '[dev] BullMQ: REDIS_URL está definido — workers de WhatsApp/lembretes vão conectar na 6379. Se o log encher de ECONNREFUSED, suba Redis: `docker compose up -d redis` ou comente REDIS_URL no .env (consórcio/n8n funcionam sem Redis).'
+        );
+      } else {
+        app.log.info(
+          '[dev] BullMQ desligado (REDIS_URL vazio) — OK para desenvolver consórcio; filas uazapi/lembretes não rodam.'
+        );
+      }
+    }
   } catch (err) {
     console.error(err);
     process.exit(1);

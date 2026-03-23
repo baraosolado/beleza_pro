@@ -21,10 +21,15 @@ import { cn } from '@/lib/utils';
 
 const newChargeSchema = z.object({
   clientId: z.string().uuid('Selecione um cliente'),
-  amount: z.coerce.number().min(0.01, 'Valor inválido'),
+  amount: z.coerce
+    .number()
+    .refine((n) => Number.isFinite(n) && n >= 0.01, {
+      message: 'Informe um valor válido (mín. R$ 0,01)',
+    }),
   dueDate: z.string().min(1, 'Data de vencimento obrigatória'),
   description: z.string().optional(),
-  productId: z.string().uuid().optional(),
+  /** Hidden input manda "" quando vazio — uuid().optional() sozinho falha no submit. */
+  productId: z.union([z.string().uuid(), z.literal('')]).optional(),
 });
 
 type NewChargeFormData = z.infer<typeof newChargeSchema>;
@@ -174,12 +179,16 @@ export function NewChargeModal({
           ? body.description
           : selectedService?.name;
 
+      const productId =
+        body.productId && String(body.productId).trim() !== ''
+          ? body.productId
+          : undefined;
       return api.post('/charges', {
         clientId: body.clientId,
         amount: Number(body.amount),
         dueDate: body.dueDate,
         ...(description && { description }),
-        ...(body.productId && { productId: body.productId }),
+        ...(productId && { productId }),
       });
     },
     onSuccess: () => {

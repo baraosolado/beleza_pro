@@ -10,7 +10,11 @@ const createSchema = z.object({
   amount: z.number().min(0),
   description: z.string().optional(),
   dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).or(z.coerce.date()),
-  productId: z.string().uuid().optional(),
+  /** Clientes podem enviar "" — tratar como ausente. */
+  productId: z
+    .union([z.string().uuid(), z.literal('')])
+    .optional()
+    .transform((v) => (v && v !== '' ? v : undefined)),
 });
 
 const updateSchema = z.object({

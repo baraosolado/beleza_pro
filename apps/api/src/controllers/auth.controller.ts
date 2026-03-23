@@ -42,16 +42,25 @@ export async function register(
     return replyError(reply, result.statusCode, result.error, result.code);
   }
   const user = result.data!.user;
-  const accessToken = await request.server.jwt.sign(
-    { sub: user.id, plan: user.plan },
-    { expiresIn: env.JWT_EXPIRES_IN }
-  );
-  const refreshToken = await authService.createRefreshToken(user.id);
-  return reply.status(201).send({
-    user: result.data!.user,
-    accessToken,
-    refreshToken,
-  });
+  try {
+    const accessToken = await request.server.jwt.sign(
+      { sub: user.id, plan: user.plan },
+      { expiresIn: env.JWT_EXPIRES_IN }
+    );
+    const refreshToken = await authService.createRefreshToken(user.id);
+    return reply.status(201).send({
+      user: result.data!.user,
+      accessToken,
+      refreshToken,
+    });
+  } catch (err) {
+    request.log.error({ err }, 'auth.register token');
+    const msg =
+      env.NODE_ENV === 'development' && err instanceof Error
+        ? err.message
+        : 'Erro ao emitir sessão. Verifique JWT_SECRET e JWT_REFRESH_SECRET.';
+    return replyError(reply, 500, msg, 'TOKEN_ISSUE');
+  }
 }
 
 export async function login(
@@ -67,16 +76,25 @@ export async function login(
     return replyError(reply, result.statusCode, result.error, result.code);
   }
   const data = result.data!;
-  const accessToken = await request.server.jwt.sign(
-    { sub: data.user.id, plan: data.user.plan },
-    { expiresIn: env.JWT_EXPIRES_IN }
-  );
-  const refreshToken = await authService.createRefreshToken(data.user.id);
-  return reply.send({
-    user: data.user,
-    accessToken,
-    refreshToken,
-  });
+  try {
+    const accessToken = await request.server.jwt.sign(
+      { sub: data.user.id, plan: data.user.plan },
+      { expiresIn: env.JWT_EXPIRES_IN }
+    );
+    const refreshToken = await authService.createRefreshToken(data.user.id);
+    return reply.send({
+      user: data.user,
+      accessToken,
+      refreshToken,
+    });
+  } catch (err) {
+    request.log.error({ err }, 'auth.login token');
+    const msg =
+      env.NODE_ENV === 'development' && err instanceof Error
+        ? err.message
+        : 'Erro ao emitir sessão. Verifique JWT_SECRET e JWT_REFRESH_SECRET.';
+    return replyError(reply, 500, msg, 'TOKEN_ISSUE');
+  }
 }
 
 export async function refresh(
@@ -92,12 +110,21 @@ export async function refresh(
     return replyError(reply, result.statusCode, result.error, result.code);
   }
   const data = result.data!;
-  const accessToken = await request.server.jwt.sign(
-    { sub: data.userId, plan: data.plan },
-    { expiresIn: env.JWT_EXPIRES_IN }
-  );
-  const newRefreshToken = await authService.createRefreshToken(data.userId);
-  return reply.send({ accessToken, refreshToken: newRefreshToken });
+  try {
+    const accessToken = await request.server.jwt.sign(
+      { sub: data.userId, plan: data.plan },
+      { expiresIn: env.JWT_EXPIRES_IN }
+    );
+    const newRefreshToken = await authService.createRefreshToken(data.userId);
+    return reply.send({ accessToken, refreshToken: newRefreshToken });
+  } catch (err) {
+    request.log.error({ err }, 'auth.refresh token');
+    const msg =
+      env.NODE_ENV === 'development' && err instanceof Error
+        ? err.message
+        : 'Erro ao emitir sessão. Verifique JWT_SECRET e JWT_REFRESH_SECRET.';
+    return replyError(reply, 500, msg, 'TOKEN_ISSUE');
+  }
 }
 
 export async function forgotPassword(

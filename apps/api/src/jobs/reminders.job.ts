@@ -2,9 +2,15 @@ import type { Job } from 'bullmq';
 
 import { prisma } from '../db/prisma/client.js';
 
-import { addWhatsAppJob, createRemindersWorker, type ReminderJobData } from './queue.js';
+import {
+  addWhatsAppJob,
+  createRemindersWorker,
+  isRedisEnabled,
+  type ReminderJobData,
+} from './queue.js';
 
-const worker = createRemindersWorker(async (job: Job<ReminderJobData>) => {
+const worker = isRedisEnabled
+  ? createRemindersWorker(async (job: Job<ReminderJobData>) => {
     const { appointmentId, userId } = job.data;
     const appointment = await prisma.appointment.findFirst({
       where: { id: appointmentId, userId },
@@ -38,10 +44,15 @@ const worker = createRemindersWorker(async (job: Job<ReminderJobData>) => {
       where: { id: appointmentId },
       data: { reminderSent: true },
     });
-});
+})
+  : null;
 
-worker.on('failed', (job, err) => {
-  console.error(`[reminders.job] job ${job?.id} failed:`, err?.message);
-});
+if (worker) {
+  worker.on('failed', (job, err) => {
+    console.error(`[reminders.job] job ${job?.id} failed:`, err?.message);
+  });
+} else {
+  console.warn('[reminders.job] Worker não iniciado: REDIS_URL vazio — lembretes agendados desativados');
+}
 
 export { worker as remindersWorker };

@@ -2,6 +2,7 @@ import * as crypto from 'node:crypto';
 import * as jose from 'jose';
 
 import argon2 from 'argon2';
+import { Prisma } from '@prisma/client';
 
 import { env } from '../config/env.js';
 import { prisma } from '../db/prisma/client.js';
@@ -18,10 +19,16 @@ type ServiceResult<T> =
 
 const TRIAL_DAYS = 14;
 
+/** E-mails são únicos sem diferenciar maiúsculas (evita login falhar com Josefata@ vs josefata@). */
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
 export async function register(
   input: RegisterInput
 ): Promise<ServiceResult<{ user: UserPayload }>> {
-  const existing = await prisma.user.findUnique({ where: { email: input.email } });
+  const email = normalizeEmail(input.email);
+  const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
     return { error: 'E-mail já cadastrado', code: 'EMAIL_IN_USE', statusCode: 409 };
   }
@@ -31,7 +38,7 @@ export async function register(
   const user = await prisma.user.create({
     data: {
       name: input.name,
-      email: input.email,
+      email,
       passwordHash,
       plan: 'trial',
       planExpiresAt,
@@ -43,25 +50,71 @@ export async function register(
 }
 
 export async function login(input: LoginInput): Promise<ServiceResult<{ user: UserPayload }>> {
-  const user = await prisma.user.findUnique({ where: { email: input.email } });
-  if (!user) {
-    return { error: 'E-mail ou senha inválidos', code: 'INVALID_CREDENTIALS', statusCode: 401 };
+  try {
+    const email = normalizeEmail(input.email);
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      return { error: 'E-mail ou senha inválidos', code: 'INVALID_CREDENTIALS', statusCode: 401 };
+    }
+
+    let valid = false;
+    try {
+      valid = await argon2.verify(user.passwordHash, input.password);
+    } catch {
+      // Hash inválido, formato antigo (ex.: bcrypt) ou corrompido — não expor detalhe ao cliente
+      valid = false;
+    }
+
+    if (!valid) {
+      return { error: 'E-mail ou senha inválidos', code: 'INVALID_CREDENTIALS', statusCode: 401 };
+    }
+
+    return {
+      data: {
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          plan: String(user.plan),
+        },
+      },
+    };
+  } catch (err) {
+    console.error('[auth.service.login]', err);
+
+    const isDev = env.NODE_ENV === 'development';
+    let message =
+      'Serviço indisponível. Verifique o banco de dados e tente novamente.';
+
+    if (isDev) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError) {
+        message = `Banco de dados [${err.code}]: ${err.message}`;
+      } else if (err instanceof Prisma.PrismaClientInitializationError) {
+        message = `Prisma não conectou: ${err.message}`;
+      } else if (err instanceof Error) {
+        message = `Erro no login: ${err.message}`;
+      }
+    }
+
+    return {
+      error: message,
+      code: 'LOGIN_UNAVAILABLE',
+      statusCode: 503,
+    };
   }
-  const valid = await argon2.verify(user.passwordHash, input.password);
-  if (!valid) {
-    return { error: 'E-mail ou senha inválidos', code: 'INVALID_CREDENTIALS', statusCode: 401 };
-  }
-  return {
-    data: { user: { id: user.id, email: user.email, name: user.name, plan: user.plan } },
-  };
 }
 
 export async function createRefreshToken(userId: string): Promise<string> {
-  const secret = new TextEncoder().encode(env.JWT_REFRESH_SECRET);
-  return new jose.SignJWT({ sub: userId, type: 'refresh' })
-    .setProtectedHeader({ alg: 'HS256' })
-    .setExpirationTime(env.JWT_REFRESH_EXPIRES_IN)
-    .sign(secret);
+  try {
+    const secret = new TextEncoder().encode(env.JWT_REFRESH_SECRET);
+    return await new jose.SignJWT({ sub: userId, type: 'refresh' })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setExpirationTime(env.JWT_REFRESH_EXPIRES_IN)
+      .sign(secret);
+  } catch (err) {
+    console.error('[auth.service.createRefreshToken]', err);
+    throw new Error('Falha ao gerar refresh token (JWT_REFRESH_SECRET / JWT_REFRESH_EXPIRES_IN)');
+  }
 }
 
 export async function verifyRefreshToken(token: string): Promise<{ sub: string } | null> {
@@ -90,7 +143,8 @@ export async function refresh(
 }
 
 export async function forgotPassword(email: string): Promise<ServiceResult<{ message: string }>> {
-  const user = await prisma.user.findUnique({ where: { email } });
+  const normalized = normalizeEmail(email);
+  const user = await prisma.user.findUnique({ where: { email: normalized } });
   const message = 'Se o e-mail existir, você receberá um link para redefinir a senha.';
   if (!user) {
     return { data: { message } };

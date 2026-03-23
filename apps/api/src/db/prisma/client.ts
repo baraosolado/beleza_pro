@@ -1,7 +1,13 @@
 import path from 'node:path';
 
 import dotenv from 'dotenv';
-import { PrismaClient } from '@prisma/client';
+// Em ESM, o @prisma/client costuma expor apenas `default`. Por isso, usamos default import
+// e extraímos o PrismaClient por propriedade.
+import prismaClientPkg from '@prisma/client';
+
+const { PrismaClient } = prismaClientPkg as unknown as {
+  PrismaClient: typeof import('@prisma/client').PrismaClient;
+};
 
 const rootEnv = path.resolve(process.cwd(), '.env');
 const monorepoRoot = path.resolve(process.cwd(), '..', '..');

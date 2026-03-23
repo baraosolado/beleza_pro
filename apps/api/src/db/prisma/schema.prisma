@@ -14,6 +14,11 @@ enum Plan {
   pro
 }
 
+enum UserRole {
+  user
+  admin
+}
+
 enum AppointmentStatus {
   scheduled
   confirmed
@@ -42,12 +47,18 @@ enum WhatsAppMessageType {
   custom
 }
 
+enum ConsorcioParticipantStatus {
+  elegivel
+  sorteada
+}
+
 model User {
   id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name                  String    @db.VarChar(255)
   email                 String    @unique @db.VarChar(255)
   passwordHash          String    @map("password_hash") @db.Text
   phone                 String?   @db.VarChar(20)
+  role                  UserRole  @default(user)
   plan                  Plan      @default(trial)
   planExpiresAt         DateTime? @map("plan_expires_at") @db.Timestamptz
   stripeCustomerId           String?   @map("stripe_customer_id") @db.VarChar(100)
@@ -73,6 +84,10 @@ model User {
   notificationsLogs     NotificationsLog[]
   products              Product[]
   productCategories     ProductCategory[]
+  consorcioSettings     ConsorcioSettings?
+  consorcioParticipants ConsorcioParticipant[]
+  consorcioDraws        ConsorcioDraw[]
+  consorcioPdfs         ConsorcioPdf[]
 
   @@map("users")
 }
@@ -91,6 +106,7 @@ model Client {
   appointments Appointment[]
   charges     Charge[]
   whatsappMessages WhatsAppMessage[]
+  consorcioParticipants ConsorcioParticipant[]
 
   @@index([userId])
   @@index([phone])
@@ -234,5 +250,76 @@ model ProductCategory {
 
   @@index([userId])
   @@map("product_categories")
+}
+
+model ConsorcioSettings {
+  userId               String   @id @map("user_id") @db.Uuid
+  cycleName            String   @default("Ciclo atual") @map("cycle_name") @db.VarChar(200)
+  drawDayOfMonth       Int      @default(10) @map("draw_day_of_month")
+  reminderDayOfMonth   Int      @default(20) @map("reminder_day_of_month")
+  reminderTime         String   @default("09:00") @map("reminder_time") @db.VarChar(8)
+  selectedPdfIds       Json     @default("[]") @map("selected_pdf_ids")
+  updatedAt            DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("consorcio_settings")
+}
+
+model ConsorcioParticipant {
+  id        String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String                     @map("user_id") @db.Uuid
+  clientId  String                     @map("client_id") @db.Uuid
+  status    ConsorcioParticipantStatus @default(elegivel)
+  joinedAt  DateTime                   @default(now()) @map("joined_at") @db.Timestamptz
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, clientId])
+  @@index([userId])
+  @@map("consorcio_participants")
+}
+
+model ConsorcioDraw {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String   @map("user_id") @db.Uuid
+  drawnAt          DateTime @default(now()) @map("drawn_at") @db.Timestamptz
+  winnerName       String   @map("winner_name") @db.VarChar(255)
+  winnerParticipantId String? @map("winner_participant_id") @db.Uuid
+  participantCount Int      @map("participant_count")
+  triggeredBy      String   @map("triggered_by") @db.VarChar(20)
+  videoUrl         String?  @map("video_url") @db.Text
+  /// Vídeo curto em base64 (preview antes de enviar pelo 2º webhook). Opcional.
+  videoPreviewBase64 String? @map("video_preview_base64") @db.Text
+  videoPreviewMime   String? @map("video_preview_mime") @db.VarChar(100)
+  /// true até o webhook de envio (WhatsApp) confirmar sucesso.
+  whatsappDispatchPending Boolean @default(false) @map("whatsapp_dispatch_pending")
+  /// Retorno do n8n: videoGenerated, whatsappSent, etc.
+  n8nAutomation    Json?    @map("n8n_automation")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, drawnAt(sort: Desc)])
+  @@map("consorcio_draws")
+}
+
+model ConsorcioPdf {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  title       String   @map("title") @db.VarChar(200)
+  fileName    String?  @map("file_name") @db.VarChar(255)
+  mime        String   @map("mime") @db.VarChar(50)
+  /// URL pública após upload via n8n (ex.: MinIO). Novos cadastros usam só isto.
+  publicUrl   String?  @map("public_url") @db.Text
+  /// Legado: PDF em base64 no banco (cadastros antigos). Novos: null.
+  pdfBase64   String?  @map("pdf_base64") @db.Text
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("consorcio_pdfs")
 }
 

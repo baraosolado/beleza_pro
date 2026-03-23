@@ -5,24 +5,28 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "prisma generate --schema=src/db/prisma/schema.prisma && tsc",
+    "build": "node scripts/prisma-generate-unlock.mjs && tsc",
     "start": "node dist/server.js",
     "test:db": "tsx scripts/test-db.ts",
-    "db:generate": "prisma generate --schema=src/db/prisma/schema.prisma",
-    "db:migrate": "prisma migrate dev --schema=src/db/prisma/schema.prisma",
+    "db:generate": "node scripts/prisma-generate-unlock.mjs",
+    "db:generate:raw": "prisma generate --schema=src/db/prisma/schema.prisma",
+    "db:migrate": "npx dotenv-cli -e ../../.env -- prisma migrate dev --schema=src/db/prisma/schema.prisma",
     "db:migrate:dev": "tsx scripts/run-migrate.ts",
-    "db:studio": "prisma studio --schema=src/db/prisma/schema.prisma"
+    "db:studio": "prisma studio --schema=src/db/prisma/schema.prisma",
+    "db:seed:dev-user": "tsx scripts/seed-dev-user.ts"
   },
   "dependencies": {
     "@fastify/cors": "^8.5.0",
     "@fastify/helmet": "^11.1.1",
     "@fastify/jwt": "^7.2.4",
+    "@fastify/multipart": "^8.3.1",
     "@fastify/sensible": "^5.6.0",
     "@prisma/client": "5.22.0",
     "argon2": "^0.44.0",
     "bullmq": "^5.71.0",
     "fastify": "^4.28.0",
     "fastify-plugin": "^5.1.0",
+    "form-data": "^4.0.5",
     "ioredis": "^5.10.0",
     "jose": "^6.2.1",
     "pg": "^8.13.0",
@@ -31,6 +35,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@types/form-data": "^2.2.1",
     "@types/node": "^20.0.0",
     "@types/pg": "^8.11.0",
     "dotenv": "^16.4.0",
