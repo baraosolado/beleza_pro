@@ -21,7 +21,6 @@ type ChargeItem = {
   description?: string | null;
   client: { name: string };
   appointment?: { service?: { name: string } } | null;
-  stripePixCopyPaste?: string | null;
 };
 
 type FinancialSummary = {
@@ -140,17 +139,6 @@ export function ChargesClient() {
     },
     { all: 0, paid: 0, pending: 0, overdue: 0, cancelled: 0 }
   );
-
-  const copyPix = async (copyPaste: string | undefined) => {
-    if (!copyPaste) return;
-    try {
-      await navigator.clipboard.writeText(copyPaste);
-      setToast('Copiado!');
-      setTimeout(() => setToast(null), 2000);
-    } catch {
-      setToast('Erro ao copiar');
-    }
-  };
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/charges/${id}`),
@@ -369,9 +357,6 @@ export function ChargesClient() {
                       Status
                     </th>
                     <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider">
-                      Pix
-                    </th>
-                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider">
                       Ações
                     </th>
                   </tr>
@@ -426,21 +411,6 @@ export function ChargesClient() {
                       </td>
                       <td className="px-6 py-4">
                         {statusBadge(effectiveStatus)}
-                      </td>
-                      <td className="px-6 py-4">
-                        {effectiveStatus === 'pending' && c.stripePixCopyPaste ? (
-                          <button
-                            type="button"
-                            className="flex items-center gap-1 text-xs font-bold text-primary hover:text-primary/80"
-                            onClick={() =>
-                              copyPix(c.stripePixCopyPaste ?? undefined)
-                            }
-                          >
-                            Copiar Pix
-                          </button>
-                        ) : (
-                          <span className="text-sm text-slate-400">—</span>
-                        )}
                       </td>
                       <td className="px-6 py-4">
                         <div className="relative inline-block text-left">

@@ -1,3 +1,5 @@
+import type { Prisma } from '@prisma/client';
+
 import { prisma } from '../db/prisma/client.js';
 
 type ServiceResult<T> =
@@ -99,7 +101,7 @@ export async function upcoming(
   const endOfDay = new Date(startOfDay);
   endOfDay.setDate(endOfDay.getDate() + 1);
 
-  const where: Parameters<typeof prisma.appointment.findMany>[0]['where'] = {
+  const where: Prisma.AppointmentWhereInput = {
     userId,
     status: { in: ['scheduled', 'confirmed'] },
   };

@@ -64,10 +64,6 @@ export function NewChargeModal({
 }: NewChargeModalProps) {
   const queryClient = useQueryClient();
   const [createError, setCreateError] = useState<string | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<'pix' | 'card' | 'cash'>(
-    'pix'
-  );
-  const [generatePixNow, setGeneratePixNow] = useState(true);
   const [sendWhatsappReminder, setSendWhatsappReminder] = useState(true);
   const [clientSearch, setClientSearch] = useState('');
   const [clientDropdownOpen, setClientDropdownOpen] = useState(false);
@@ -144,8 +140,6 @@ export function NewChargeModal({
       setClientSearch('');
       setSelectedServiceId(null);
       setCreateError(null);
-      setPaymentMethod('pix');
-      setGeneratePixNow(true);
       setSendWhatsappReminder(true);
       setClientDropdownOpen(false);
     }
@@ -402,63 +396,11 @@ export function NewChargeModal({
               </div>
             </div>
 
-            {/* Forma de pagamento — segmentado */}
-            <div className="space-y-3">
-              <label className="block text-[13px] font-semibold text-ink-secondary">
-                Forma de pagamento
-              </label>
-              <div className="flex rounded-xl bg-app-bg p-1">
-                {(
-                  [
-                    { id: 'pix' as const, label: 'Pix' },
-                    { id: 'card' as const, label: 'Cartão' },
-                    { id: 'cash' as const, label: 'Dinheiro' },
-                  ] as const
-                ).map(({ id, label }) => (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => setPaymentMethod(id)}
-                    className={cn(
-                      'flex-1 rounded-lg py-2 text-xs font-bold transition-all',
-                      paymentMethod === id
-                        ? 'bg-primary text-white shadow-sm'
-                        : 'font-medium text-ink-secondary hover:bg-app-surface'
-                    )}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Opções (UI — backend futuro) */}
+            {/* Opções */}
             <div className="space-y-3 rounded-xl border border-border/60 bg-app-bg/50 p-4">
               <p className="text-[11px] font-bold uppercase tracking-wider text-ink-muted">
                 Opções
               </p>
-              <label className="flex cursor-pointer items-center justify-between gap-3">
-                <span className="text-sm font-medium text-ink-primary">
-                  Gerar QR Code Pix agora
-                </span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={generatePixNow}
-                  className={cn(
-                    'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full bg-zinc-200 transition-colors',
-                    generatePixNow && 'bg-primary'
-                  )}
-                  onClick={() => setGeneratePixNow((v) => !v)}
-                >
-                  <span
-                    className={cn(
-                      'inline-block size-5 translate-x-1 rounded-full bg-white shadow transition-transform',
-                      generatePixNow && 'translate-x-5'
-                    )}
-                  />
-                </button>
-              </label>
               <label className="flex cursor-pointer items-center justify-between gap-3">
                 <span className="text-sm font-medium text-ink-primary">
                   Enviar lembrete via WhatsApp

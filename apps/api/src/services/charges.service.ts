@@ -105,7 +105,11 @@ export async function create(
     select: { plan: true, whatsappInstanceId: true },
   });
   if (!user || (user.plan !== 'pro' && user.plan !== 'trial')) {
-    return { error: 'Cobrança Pix disponível apenas no plano Pro', code: 'PLAN_REQUIRED', statusCode: 403 };
+    return {
+      error: 'Registro de cobranças disponível apenas nos planos Trial ou Pro.',
+      code: 'PLAN_REQUIRED',
+      statusCode: 403,
+    };
   }
 
   const client = await prisma.client.findFirst({
@@ -149,9 +153,6 @@ export async function create(
         amount: input.amount,
         description: input.description,
         dueDate: input.dueDate,
-        stripePaymentIntentId: null,
-        stripePixQrcode: null,
-        stripePixCopyPaste: null,
       },
       include: { client: true, appointment: true },
     });
@@ -216,45 +217,6 @@ export async function update(
   });
 
   return { data: charge };
-}
-
-export async function getPix(
-  userId: string,
-  id: string
-): Promise<ServiceResult<{ qrcode: string | null; copyPaste: string | null }>> {
-  const charge = await prisma.charge.findFirst({
-    where: { id, userId },
-    select: { stripePixQrcode: true, stripePixCopyPaste: true },
-  });
-  if (!charge) return { error: 'Cobrança não encontrada', code: 'NOT_FOUND', statusCode: 404 };
-  return {
-    data: {
-      qrcode: charge.stripePixQrcode,
-      copyPaste: charge.stripePixCopyPaste,
-    },
-  };
-}
-
-export async function getPaymentLink(
-  userId: string,
-  id: string
-): Promise<ServiceResult<{ clientSecret: string | null }>> {
-  const charge = await prisma.charge.findFirst({
-    where: { id, userId },
-    select: { stripePaymentIntentId: true, status: true },
-  });
-  if (!charge) return { error: 'Cobrança não encontrada', code: 'NOT_FOUND', statusCode: 404 };
-  if (charge.status === 'paid') {
-    return { data: { clientSecret: null } };
-  }
-  if (!charge.stripePaymentIntentId) {
-    return { data: { clientSecret: null } };
-  }
-  const pi = await retrievePaymentIntent(charge.stripePaymentIntentId);
-  if (!pi || !pi.client_secret) {
-    return { error: 'Link de pagamento indisponível', code: 'PAYMENT_LINK_UNAVAILABLE', statusCode: 503 };
-  }
-  return { data: { clientSecret: pi.client_secret } };
 }
 
 export async function remove(userId: string, id: string): Promise<ServiceResult<null>> {

@@ -389,20 +389,6 @@ export function NewAppointmentForm({
           Enviar confirmação por WhatsApp
         </span>
       </label>
-      <div className="mt-2 flex items-center gap-2">
-        <input
-          type="checkbox"
-          id="stripe-charge"
-          disabled
-          className="cursor-not-allowed"
-        />
-        <label htmlFor="stripe-charge" className="text-sm text-slate-600">
-          Cobrança Pix (Stripe)
-        </label>
-        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-          Plano Pro
-        </span>
-      </div>
       <div className="mt-3">
         <label className="mb-1 block text-sm text-slate-600">Observações</label>
         <textarea

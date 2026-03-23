@@ -61,7 +61,6 @@ model User {
   role                  UserRole  @default(user)
   plan                  Plan      @default(trial)
   planExpiresAt         DateTime? @map("plan_expires_at") @db.Timestamptz
-  stripeCustomerId           String?   @map("stripe_customer_id") @db.VarChar(100)
   whatsappInstanceId         String?   @map("whatsapp_instance_id") @db.VarChar(100)
   resetPasswordToken         String?   @map("reset_password_token") @db.VarChar(255)
   resetPasswordExpiresAt     DateTime? @map("reset_password_expires_at") @db.Timestamptz
@@ -161,9 +160,6 @@ model Charge {
   amount                 Decimal     @db.Decimal(10, 2)
   description           String?     @db.Text
   status                 ChargeStatus @default(pending)
-  stripePaymentIntentId  String?     @map("stripe_payment_intent_id") @db.VarChar(100)
-  stripePixQrcode        String?     @map("stripe_pix_qrcode") @db.Text
-  stripePixCopyPaste     String?     @map("stripe_pix_copy_paste") @db.Text
   dueDate                DateTime    @map("due_date") @db.Date
   paidAt                 DateTime?   @map("paid_at") @db.Timestamptz
   createdAt             DateTime    @default(now()) @map("created_at") @db.Timestamptz

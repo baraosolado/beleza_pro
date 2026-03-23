@@ -254,12 +254,8 @@ export async function updateStatus(
   if (!existing) return { error: 'Agendamento não encontrado', code: 'NOT_FOUND', statusCode: 404 };
 
   if (status === 'cancelled') {
-    const pendingCharges = existing.charges.filter((c) => c.status === 'pending' && c.stripePaymentIntentId);
-    const { cancelPaymentIntent } = await import('../integrations/stripe.js');
+    const pendingCharges = existing.charges.filter((c) => c.status === 'pending');
     for (const ch of pendingCharges) {
-      if (ch.stripePaymentIntentId) {
-        await cancelPaymentIntent(ch.stripePaymentIntentId);
-      }
       await prisma.charge.update({
         where: { id: ch.id },
         data: { status: 'cancelled' },

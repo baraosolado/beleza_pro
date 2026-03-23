@@ -14,7 +14,9 @@ const monorepoRoot = path.resolve(process.cwd(), '..', '..');
 dotenv.config({ path: rootEnv });
 dotenv.config({ path: path.join(monorepoRoot, '.env') });
 
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
+const globalForPrisma = globalThis as unknown as {
+  prisma: InstanceType<typeof PrismaClient>;
+};
 
 export const prisma =
   globalForPrisma.prisma ??

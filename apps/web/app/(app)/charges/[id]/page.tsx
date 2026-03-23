@@ -17,7 +17,6 @@ type ChargeDetail = {
   dueDate: string;
   paidAt: string | null;
   description: string | null;
-  stripePixCopyPaste: string | null;
   client: { id: string; name: string; phone: string };
   appointment: { id: string; service: { name: string } } | null;
 };
@@ -38,17 +37,6 @@ export default function ChargeDetailPage() {
     queryFn: () => api.get<ChargeDetail>(`/charges/${id}`).then((r) => r.data),
     enabled: !!id,
   });
-
-  const copyPix = async () => {
-    if (!charge?.stripePixCopyPaste) return;
-    try {
-      await navigator.clipboard.writeText(charge.stripePixCopyPaste);
-      setToast('Pix copiado!');
-      setTimeout(() => setToast(null), 2000);
-    } catch {
-      setToast('Erro ao copiar');
-    }
-  };
 
   function statusBadge(status: string): React.ReactNode {
     const v =
@@ -255,17 +243,6 @@ export default function ChargeDetailPage() {
                 </div>
               </div>
             </form>
-
-            {charge.status === 'pending' && charge.stripePixCopyPaste && (
-              <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-slate-100 pt-6">
-                <Button type="button" onClick={copyPix} variant="primary">
-                  Copiar Pix copia e cola
-                </Button>
-                {toast && (
-                  <span className="text-sm text-emerald-600">{toast}</span>
-                )}
-              </div>
-            )}
 
             <div className="mt-6 flex gap-3 border-t border-slate-100 pt-6">
               <Link href={`/clients/${charge.client.id}`}>

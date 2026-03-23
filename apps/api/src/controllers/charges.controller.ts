@@ -80,27 +80,11 @@ export async function update(
       : (parsed.data.dueDate as Date | undefined);
 
   const result = await chargesService.update(request.userId, request.params.id, {
-    ...parsed.data,
+    amount: parsed.data.amount,
+    description: parsed.data.description,
+    status: parsed.data.status,
     ...(dueDate && { dueDate }),
   });
-  if (result.error) return replyError(reply, result.statusCode, result.error, result.code);
-  return reply.send(result.data);
-}
-
-export async function getPix(
-  request: FastifyRequest<{ Params: { id: string } }>,
-  reply: FastifyReply
-): Promise<FastifyReply> {
-  const result = await chargesService.getPix(request.userId, request.params.id);
-  if (result.error) return replyError(reply, result.statusCode, result.error, result.code);
-  return reply.send(result.data);
-}
-
-export async function getPaymentLink(
-  request: FastifyRequest<{ Params: { id: string } }>,
-  reply: FastifyReply
-): Promise<FastifyReply> {
-  const result = await chargesService.getPaymentLink(request.userId, request.params.id);
   if (result.error) return replyError(reply, result.statusCode, result.error, result.code);
   return reply.send(result.data);
 }

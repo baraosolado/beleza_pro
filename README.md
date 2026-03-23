@@ -2,7 +2,7 @@
 
 ## O que é
 
-Beleza Pro é um SaaS de gestão para profissionais de beleza autônomos no Brasil (manicures, cabeleireiros, esteticistas). Permite gerenciar clientes, agenda e cobranças com lembretes automáticos pelo WhatsApp e cobrança Pix integrada ao Stripe.
+Beleza Pro é um SaaS de gestão para profissionais de beleza autônomos no Brasil (manicures, cabeleireiros, esteticistas). Permite gerenciar clientes, agenda e **cobranças para controle interno** (valor, vencimento, status), com lembretes pelo WhatsApp e envio de conta em PDF via n8n quando configurado.
 
 ## Stack
 
@@ -12,7 +12,6 @@ Beleza Pro é um SaaS de gestão para profissionais de beleza autônomos no Bras
 | Backend    | Node.js, Fastify                    |
 | Banco      | PostgreSQL 16, Prisma ORM           |
 | Auth       | JWT (access 15min + refresh 7d), Argon2 |
-| Pagamentos | Stripe (Pix, cartão)                |
 | WhatsApp   | uazapi (self-hosted, Baileys)       |
 | Fila       | BullMQ, Redis 7                      |
 
@@ -44,7 +43,7 @@ Beleza Pro é um SaaS de gestão para profissionais de beleza autônomos no Bras
 │   │       ├── config/      # env e config
 │   │       ├── controllers/
 │   │       ├── db/prisma/   # schema e migrations
-│   │       ├── integrations/ # stripe, uazapi
+│   │       ├── integrations/ # uazapi, n8n helpers
 │   │       ├── jobs/        # workers BullMQ (whatsapp, reminders)
 │   │       ├── lib/
 │   │       ├── middleware/  # auth, plan
@@ -68,13 +67,9 @@ Beleza Pro é um SaaS de gestão para profissionais de beleza autônomos no Bras
 
 ### 1. Novo agendamento
 
-O profissional cria um agendamento → o sistema pode enviar confirmação por WhatsApp → agenda job de lembrete 24h antes → no plano Pro, pode gerar Pix no Stripe e enviar link/QR por WhatsApp.
+O profissional cria um agendamento → o sistema pode enviar confirmação por WhatsApp → agenda job de lembrete 24h antes. Cobranças são registradas manualmente (controle de valores e status).
 
-### 2. Pagamento recebido
-
-O Stripe envia webhook `payment_intent.succeeded` → a API atualiza a cobrança para `paid` e o agendamento para `confirmed` → enfileira mensagem de confirmação por WhatsApp.
-
-### 3. Lembrete automático
+### 2. Lembrete automático
 
 O worker de lembretes (BullMQ) dispara 24h antes do horário → verifica se o agendamento segue ativo → envia mensagem via uazapi → marca `reminder_sent`.
 
@@ -87,9 +82,6 @@ O worker de lembretes (BullMQ) dispara 24h antes do horário → verifica se o a
 | `JWT_REFRESH_SECRET` | Sim | Segredo para o refresh token |
 | `JWT_EXPIRES_IN` | Não | Expiração do access token (default: `15m`) |
 | `JWT_REFRESH_EXPIRES_IN` | Não | Expiração do refresh token (default: `7d`) |
-| `STRIPE_SECRET_KEY` | Não* | Chave secreta do Stripe (*obrigatória para cobranças Pix) |
-| `STRIPE_WEBHOOK_SECRET` | Não* | Segredo do webhook Stripe (*obrigatória para receber eventos) |
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Não | Chave pública do Stripe (frontend) |
 | `UAZAPI_BASE_URL` | Não | URL base do uazapi (ex.: `http://localhost:8080`) |
 | `UAZAPI_TOKEN` | Não | Token do uazapi |
 | `N8N_INVOICE_PREVIEW_WEBHOOK_URL` | Não | URL do webhook n8n para gerar pré-visualização do PDF da conta |
@@ -116,7 +108,7 @@ O repositório tem **dois Dockerfiles**: um na raiz (frontend) e um em `apps/api
 
 - **Dockerfile:** na raiz do repositório (`Dockerfile`).
 - No Easypanel: crie o serviço do front, conecte o repositório; o build usa o `Dockerfile` da raiz por padrão.
-- **Build args** (se o painel permitir): `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (para o build do Next.js).
+- **Build args** (se o painel permitir): `NEXT_PUBLIC_API_URL` (para o build do Next.js).
 - **Porta:** 3000.
 
 ### Backend (API Fastify)
