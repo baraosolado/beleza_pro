@@ -434,11 +434,14 @@ export default function ConsorcioPage() {
     },
   });
 
+  const drawReadySorteioKey =
+    drawResultModal?.phase === 'ready' ? drawResultModal.sorteioId : null;
+
   useEffect(() => {
     if (drawResultModal?.phase === 'ready') {
       setDrawSendRevistaIds([]);
     }
-  }, [drawResultModal?.phase, drawResultModal?.sorteioId]);
+  }, [drawResultModal?.phase, drawReadySorteioKey]);
 
   const sendWhatsappMutation = useMutation({
     mutationFn: (vars: { drawId: string; revistaPdfIds: string[] }) =>
@@ -1444,7 +1447,12 @@ export default function ConsorcioPage() {
                             type="button"
                             className="text-[10px] font-bold text-primary underline"
                             disabled={sendWhatsappMutation.isPending}
-                            onClick={() => sendWhatsappMutation.mutate(row.id)}
+                            onClick={() =>
+                              sendWhatsappMutation.mutate({
+                                drawId: row.id,
+                                revistaPdfIds: [],
+                              })
+                            }
                           >
                             Enviar direto
                           </button>
