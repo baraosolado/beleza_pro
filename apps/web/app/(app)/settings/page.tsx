@@ -20,7 +20,7 @@ import {
   Store,
   User,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { ChangeEvent, useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -152,6 +152,7 @@ type Settings = {
   businessPhone?: string | null;
   businessPixKey?: string | null;
   businessAddress?: string | null;
+  avatarUrl?: string | null;
   workingHours?: Record<string, { start: string; end: string } | null>;
   createdAt?: string;
 };
@@ -206,6 +207,9 @@ export default function SettingsPage() {
     message: string;
   } | null>(null);
   const [workingHours, setWorkingHours] = useState<WorkingHoursState>(defaultWorkingHours);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement | null>(null);
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ['settings'],
@@ -229,6 +233,10 @@ export default function SettingsPage() {
       }));
     }
   }, [settings?.workingHours]);
+
+  useEffect(() => {
+    setAvatarPreview(settings?.avatarUrl ?? null);
+  }, [settings?.avatarUrl]);
 
   const profileMutation = useMutation({
     mutationFn: (body: ProfileFormData) =>
@@ -277,6 +285,55 @@ export default function SettingsPage() {
       });
     },
   });
+
+  const avatarMutation = useMutation({
+    mutationFn: (avatarUrl: string | null) => api.put('/settings', { avatarUrl }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings'] });
+      setToast({ type: 'success', message: 'Foto de perfil atualizada.' });
+    },
+    onError: () => {
+      setToast({ type: 'error', message: 'Erro ao atualizar foto de perfil.' });
+    },
+  });
+
+  const onAvatarFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      setAvatarError('Selecione PNG, JPG ou WEBP.');
+      return;
+    }
+
+    const maxSizeBytes = 5 * 1024 * 1024;
+    if (file.size > maxSizeBytes) {
+      setAvatarError('A imagem deve ter no máximo 5MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === 'string' ? reader.result : null;
+      if (!result) {
+        setAvatarError('Não foi possível ler a imagem.');
+        return;
+      }
+      setAvatarError(null);
+      setAvatarPreview(result);
+      avatarMutation.mutate(result);
+    };
+    reader.onerror = () => setAvatarError('Não foi possível ler a imagem.');
+    reader.readAsDataURL(file);
+    event.target.value = '';
+  };
+
+  const removeAvatar = () => {
+    setAvatarError(null);
+    setAvatarPreview(null);
+    avatarMutation.mutate(null);
+  };
 
   const updateDayHours = (
     dayKey: string,
@@ -366,19 +423,40 @@ export default function SettingsPage() {
                   {/* Profile Header Section */}
                   <div className="border-b border-border/60 bg-slate-50/50 p-8 dark:border-slate-800 dark:bg-slate-800/30 md:flex md:flex-row md:items-center md:gap-8">
                     <div className="relative flex justify-center md:justify-start">
-                      <div
-                        className="size-32 rounded-full bg-primary flex items-center justify-center text-4xl font-bold text-white shadow-lg"
-                        aria-hidden
-                      >
-                        {settings?.name?.slice(0, 2).toUpperCase() ?? '?'}
-                      </div>
+                      {avatarPreview ? (
+                        <img
+                          src={avatarPreview}
+                          alt="Foto de perfil"
+                          className="size-32 rounded-full object-cover shadow-lg"
+                        />
+                      ) : (
+                        <div
+                          className="size-32 rounded-full bg-primary flex items-center justify-center text-4xl font-bold text-white shadow-lg"
+                          aria-hidden
+                        >
+                          {settings?.name?.slice(0, 2).toUpperCase() ?? '?'}
+                        </div>
+                      )}
+                      <input
+                        ref={avatarInputRef}
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp"
+                        className="hidden"
+                        onChange={onAvatarFileChange}
+                      />
                       <button
                         type="button"
+                        onClick={() => avatarInputRef.current?.click()}
                         className="absolute bottom-0 right-0 size-10 rounded-full border border-border bg-white shadow-md hover:text-primary transition-colors flex items-center justify-center dark:border-slate-600 dark:bg-slate-700"
                         aria-label="Trocar foto"
                       >
                         <Camera className="size-5 text-slate-600 dark:text-slate-300" />
                       </button>
+                      {avatarMutation.isPending && (
+                        <span className="absolute -bottom-7 left-1/2 -translate-x-1/2 text-xs text-slate-500">
+                          Enviando...
+                        </span>
+                      )}
                     </div>
                     <div className="mt-6 flex-1 text-center md:mt-0 md:text-left">
                       <div className="flex flex-col gap-3 md:flex-row md:items-center">
@@ -576,6 +654,19 @@ export default function SettingsPage() {
                       >
                         {toast.message}
                       </p>
+                    )}
+                    {avatarError && <p className="text-sm text-red-500">{avatarError}</p>}
+                    {avatarPreview && (
+                      <div className="flex justify-start">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={removeAvatar}
+                          isLoading={avatarMutation.isPending}
+                        >
+                          Remover foto
+                        </Button>
+                      </div>
                     )}
 
                     {/* Footer Actions */}

@@ -1,7 +1,7 @@
 import type { Job } from 'bullmq';
 
 import { prisma } from '../db/prisma/client.js';
-import * as uazapi from '../integrations/uazapi.js';
+import * as whatsapp from '../integrations/whatsapp/index.js';
 import {
   createWhatsappWorker,
   isRedisEnabled,
@@ -23,15 +23,15 @@ const worker = isRedisEnabled
         chargeId,
       } = job.data;
 
-      if (!uazapi.isConfigured()) {
-        throw new Error('uazapi não configurado');
+      if (!whatsapp.isConfigured()) {
+        throw new Error('provider do WhatsApp não configurado');
       }
 
       try {
         if (mediaUrl) {
-          await uazapi.sendMedia({ instanceId, phone, mediaUrl, caption });
+          await whatsapp.sendMedia({ instanceId, phone, mediaUrl, caption });
         } else {
-          await uazapi.sendText({ instanceId, phone, text: message });
+          await whatsapp.sendText({ instanceId, phone, text: message });
         }
 
         await prisma.whatsAppMessage.create({
@@ -75,7 +75,7 @@ if (worker) {
   });
 } else {
   console.warn(
-    '[whatsapp.job] Worker não iniciado: REDIS_URL vazio — fila WhatsApp (uazapi) desativada em dev'
+    '[whatsapp.job] Worker não iniciado: REDIS_URL vazio — fila WhatsApp desativada em dev'
   );
 }
 

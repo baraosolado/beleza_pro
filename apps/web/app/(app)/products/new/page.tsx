@@ -35,6 +35,9 @@ export default function NewProductPage(): React.ReactElement {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [lowStockAlert, setLowStockAlert] = useState(false);
+  const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const { data: categoriesData } = useQuery({
     queryKey: ['product-categories'],
@@ -64,6 +67,7 @@ export default function NewProductPage(): React.ReactElement {
 
   const mutation = useMutation({
     mutationFn: async (data: FormData) => {
+      setSubmitError(null);
       const parseMoney = (value: string | undefined): number | null => {
         if (!value) return null;
         const normalized = value.replace(/\./g, '').replace(',', '.').trim();
@@ -92,16 +96,50 @@ export default function NewProductPage(): React.ReactElement {
         lowStockAlert,
         lowStockThreshold,
         sku: data.sku?.trim() || undefined,
+        imageUrl: imageDataUrl ?? undefined,
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
-      router.push('/products');
+      router.replace('/products');
+      router.refresh();
+    },
+    onError: (err: unknown) => {
+      const message =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { error?: string } } }).response?.data
+              ?.error ?? 'Erro ao salvar produto'
+          : 'Erro ao salvar produto';
+      setSubmitError(message);
     },
   });
 
   const handleCancel = () => {
     router.push('/products');
+  };
+
+  const handleImageChange = (file: File | null) => {
+    if (!file) return;
+
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      setImageError('Formato inválido. Use PNG, JPG ou WEBP.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setImageError('A imagem deve ter no máximo 5MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImageDataUrl(typeof reader.result === 'string' ? reader.result : null);
+      setImageError(null);
+    };
+    reader.onerror = () => {
+      setImageError('Não foi possível ler a imagem selecionada.');
+    };
+    reader.readAsDataURL(file);
   };
 
   return (
@@ -145,20 +183,58 @@ export default function NewProductPage(): React.ReactElement {
                 <h3 className="mb-4 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
                   Imagem do Produto
                 </h3>
+                <input
+                  id="product-image-input"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="hidden"
+                  onChange={(e) => handleImageChange(e.target.files?.[0] ?? null)}
+                />
                 <button
                   type="button"
+                  onClick={() =>
+                    document.getElementById('product-image-input')?.click()
+                  }
                   className="group flex w-full flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-slate-50/60 p-8 text-center transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900/40 dark:hover:bg-slate-900/70"
                 >
-                  <div className="mb-3 flex size-12 items-center justify-center rounded-full bg-white shadow-sm transition-transform group-hover:scale-105 dark:bg-slate-900">
-                    <Camera className="size-6 text-primary" />
-                  </div>
-                  <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                    Clique para enviar ou arraste a foto do produto
-                  </p>
-                  <p className="mt-1 text-xs text-slate-400">
-                    PNG, JPG ou WEBP (máx. 5MB)
-                  </p>
+                  {imageDataUrl ? (
+                    <img
+                      src={imageDataUrl}
+                      alt="Pré-visualização da imagem do produto"
+                      className="max-h-52 w-auto rounded-lg object-contain"
+                    />
+                  ) : (
+                    <>
+                      <div className="mb-3 flex size-12 items-center justify-center rounded-full bg-white shadow-sm transition-transform group-hover:scale-105 dark:bg-slate-900">
+                        <Camera className="size-6 text-primary" />
+                      </div>
+                      <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                        Clique para enviar ou arraste a foto do produto
+                      </p>
+                      <p className="mt-1 text-xs text-slate-400">
+                        PNG, JPG ou WEBP (máx. 5MB)
+                      </p>
+                    </>
+                  )}
                 </button>
+                {imageDataUrl && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImageDataUrl(null);
+                      setImageError(null);
+                    }}
+                    className="mt-3 text-xs font-medium text-slate-500 underline hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                  >
+                    Remover imagem
+                  </button>
+                )}
+                {imageError && (
+                  <p className="mt-2 text-sm text-red-500">{imageError}</p>
+                )}
+                {submitError && (
+                  <p className="mt-2 text-sm text-red-500">{submitError}</p>
+                )}
               </div>
 
               {/* Informações básicas */}

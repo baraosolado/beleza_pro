@@ -1,14 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
-import { Package, Plus, Search, Tag } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Plus, Search, Send, Tag, Trash2 } from 'lucide-react';
 
 import { Header } from '@/components/layout/Header';
 import { Button, Card } from '@/components/ui';
 import { api } from '@/lib/api';
 import { cn, formatCurrency } from '@/lib/utils';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 type ProductCategory = 'all' | string;
 
@@ -19,15 +19,28 @@ type ProductItem = {
   category: string | null;
   price: number;
   stockQuantity: number;
+  imageUrl?: string | null;
 };
 type ProductCategoryItem = {
   id: string;
   name: string;
 };
+type ClientItem = {
+  id: string;
+  name: string;
+  phone: string;
+};
 
 export default function ProductsPage(): React.ReactElement {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<ProductCategory>('all');
+  const [sendModalOpen, setSendModalOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<ProductItem | null>(null);
+  const [clientSearch, setClientSearch] = useState('');
+  const [debouncedClientSearch, setDebouncedClientSearch] = useState('');
+  const [selectedClientId, setSelectedClientId] = useState<string>('');
+  const [sendError, setSendError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
     queryKey: ['products', search],
@@ -48,6 +61,20 @@ export default function ProductsPage(): React.ReactElement {
         .get<{ items: ProductCategoryItem[] }>('/product-categories')
         .then((r) => r.data),
   });
+  const { data: clientsData, isFetching: isSearchingClients } = useQuery({
+    queryKey: ['clients', 'product-send', debouncedClientSearch],
+    queryFn: () =>
+      api
+        .get<{ items: ClientItem[] } | ClientItem[]>('/clients', {
+          params: {
+            search: debouncedClientSearch,
+            page: '1',
+            limit: '8',
+          },
+        })
+        .then((r) => r.data),
+    enabled: sendModalOpen && debouncedClientSearch.length >= 2,
+  });
 
   const dynamicCategories: { key: ProductCategory; label: string }[] = [
     { key: 'all', label: 'Todos os Produtos' },
@@ -56,6 +83,20 @@ export default function ProductsPage(): React.ReactElement {
       label: c.name,
     })),
   ];
+  const clients = Array.isArray(clientsData) ? clientsData : (clientsData?.items ?? []);
+  const normalizedClientSearch = clientSearch.trim().toLowerCase();
+  const filteredClients = clients;
+  const selectedClient = clients.find((c) => c.id === selectedClientId) ?? null;
+  const shouldShowClientResults =
+    normalizedClientSearch.length >= 2 &&
+    (!selectedClient || clientSearch.trim() !== selectedClient.name);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedClientSearch(clientSearch.trim());
+    }, 300);
+    return () => clearTimeout(t);
+  }, [clientSearch]);
 
   const filtered = products.filter((p) => {
     const normalizedCategory = (p.category || '').toLowerCase();
@@ -69,6 +110,52 @@ export default function ProductsPage(): React.ReactElement {
       (p.description ? p.description.toLowerCase().includes(q) : false);
     return matchesCategory && matchesSearch;
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (productId: string) => {
+      await api.delete(`/products/${productId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+    },
+  });
+
+  const sendMutation = useMutation({
+    mutationFn: async (params: {
+      productId: string;
+      phone: string;
+      clientName?: string;
+    }) => {
+      await api.post(`/products/${params.productId}/send-whatsapp`, {
+        phone: params.phone,
+        clientName: params.clientName,
+      });
+    },
+    onSuccess: () => {
+      window.alert('Produto enviado para o WhatsApp com sucesso.');
+      setSendModalOpen(false);
+      setSelectedProduct(null);
+      setSelectedClientId('');
+      setClientSearch('');
+      setSendError(null);
+    },
+    onError: (err: unknown) => {
+      const message =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { error?: string } } }).response?.data
+              ?.error ?? 'Erro ao enviar produto no WhatsApp'
+          : 'Erro ao enviar produto no WhatsApp';
+      setSendError(message);
+    },
+  });
+
+  const openSendModal = (product: ProductItem) => {
+    setSelectedProduct(product);
+    setSelectedClientId('');
+    setClientSearch('');
+    setSendError(null);
+    setSendModalOpen(true);
+  };
 
   return (
     <>
@@ -178,25 +265,31 @@ export default function ProductsPage(): React.ReactElement {
                       key={product.id}
                       className="flex h-full flex-col overflow-hidden border border-border bg-white shadow-sm transition-shadow hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
                     >
+                      {product.imageUrl ? (
+                        <img
+                          src={product.imageUrl}
+                          alt={`Foto do produto ${product.name}`}
+                          className="h-36 w-full object-cover"
+                        />
+                      ) : null}
                       <div className="flex items-start gap-3 border-b border-border/60 px-4 py-3 dark:border-slate-800">
-                        <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                          <Package className="size-5" />
-                        </div>
                         <div className="min-w-0 flex-1">
                           <h3 className="truncate text-sm font-bold text-slate-900 dark:text-slate-50">
                             {product.name}
                           </h3>
-                          <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                            {product.category === 'cabelo'
-                              ? 'Cabelo'
-                              : product.category === 'unhas'
-                                ? 'Unhas'
-                                : product.category === 'estetica'
-                                  ? 'Estética'
-                                  : product.category === 'maquiagem'
-                                    ? 'Maquiagem'
-                                    : 'Geral'}
-                          </p>
+                          {product.category ? (
+                            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                              {product.category === 'cabelo'
+                                ? 'Cabelo'
+                                : product.category === 'unhas'
+                                  ? 'Unhas'
+                                  : product.category === 'estetica'
+                                    ? 'Estética'
+                                    : product.category === 'maquiagem'
+                                      ? 'Maquiagem'
+                                      : product.category}
+                            </p>
+                          ) : null}
                         </div>
                         <span className="inline-flex items-center gap-1 rounded-full bg-primary/5 px-2 py-0.5 text-[10px] font-semibold uppercase text-primary">
                           <Tag className="size-3" />
@@ -229,6 +322,32 @@ export default function ProductsPage(): React.ReactElement {
                             Editar
                           </Button>
                         </Link>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-9 w-full border-border text-xs font-semibold dark:border-slate-700"
+                          disabled={sendMutation.isPending}
+                          onClick={() => openSendModal(product)}
+                        >
+                          <Send className="mr-1 size-4" />
+                          Enviar
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-9 w-full border-red-200 text-xs font-semibold text-red-600 hover:bg-red-50 dark:border-red-900/40 dark:text-red-400 dark:hover:bg-red-950/40"
+                          disabled={deleteMutation.isPending}
+                          onClick={() => {
+                            const confirmed = window.confirm(
+                              `Excluir o produto "${product.name}"? Essa ação não pode ser desfeita.`
+                            );
+                            if (!confirmed) return;
+                            deleteMutation.mutate(product.id);
+                          }}
+                          aria-label={`Excluir produto ${product.name}`}
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
                         <Link
                           href={`/charges?amount=${product.price}&description=${encodeURIComponent(
                             product.name
@@ -250,6 +369,108 @@ export default function ProductsPage(): React.ReactElement {
           </section>
         </div>
       </main>
+      {sendModalOpen && selectedProduct && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+          <button
+            type="button"
+            className="absolute inset-0"
+            onClick={() => setSendModalOpen(false)}
+            aria-label="Fechar modal de envio"
+          />
+          <div
+            className="relative z-10 w-full max-w-lg rounded-2xl border border-border bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-50">
+              Enviar produto no WhatsApp
+            </h3>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              Produto: <span className="font-semibold">{selectedProduct.name}</span>
+            </p>
+
+            <div className="mt-4 space-y-3">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                Buscar cliente
+              </label>
+              <input
+                type="text"
+                value={clientSearch}
+                onChange={(e) => {
+                  setClientSearch(e.target.value);
+                  if (selectedClientId) setSelectedClientId('');
+                }}
+                placeholder="Nome ou telefone"
+                className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-slate-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+              />
+              {!shouldShowClientResults ? (
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {selectedClient
+                    ? `Cliente selecionado: ${selectedClient.name}`
+                    : 'Digite pelo menos 2 caracteres para buscar um cliente.'}
+                </p>
+              ) : (
+                <div className="max-h-64 space-y-2 overflow-y-auto rounded-lg border border-border p-2 dark:border-slate-700">
+                  {isSearchingClients ? (
+                    <p className="px-2 py-3 text-sm text-slate-500">Buscando clientes...</p>
+                  ) : filteredClients.length === 0 ? (
+                    <p className="px-2 py-3 text-sm text-slate-500">
+                      Nenhum cliente encontrado.
+                    </p>
+                  ) : (
+                    filteredClients.map((client) => (
+                      <button
+                        key={client.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedClientId(client.id);
+                          setClientSearch(client.name);
+                        }}
+                        className={cn(
+                          'flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition-colors',
+                          selectedClientId === client.id
+                            ? 'bg-primary/10 text-primary'
+                            : 'hover:bg-slate-100 dark:hover:bg-slate-800'
+                        )}
+                      >
+                        <span className="font-medium">{client.name}</span>
+                        <span className="text-xs text-slate-500">{client.phone}</span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+              {sendError && (
+                <p className="text-sm text-red-500">{sendError}</p>
+              )}
+            </div>
+
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setSendModalOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                disabled={!selectedClient || sendMutation.isPending}
+                onClick={() => {
+                  if (!selectedProduct || !selectedClient) return;
+                  setSendError(null);
+                  sendMutation.mutate({
+                    productId: selectedProduct.id,
+                    phone: selectedClient.phone,
+                    clientName: selectedClient.name,
+                  });
+                }}
+              >
+                {sendMutation.isPending ? 'Enviando...' : 'Enviar para cliente'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

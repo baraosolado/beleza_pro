@@ -14,12 +14,22 @@ const updateSchema = z.object({
   businessPhone: z.string().max(20).optional(),
   businessPixKey: z.string().max(255).optional(),
   businessAddress: z.string().max(1000).optional(),
+  avatarUrl: z
+    .string()
+    .url()
+    .or(z.string().regex(/^data:image\/(png|jpeg|jpg|webp);base64,[A-Za-z0-9+/=]+$/))
+    .nullable()
+    .optional(),
   workingHours: z.record(z.string(), z.unknown()).optional(),
 });
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, 'Senha atual obrigatória'),
   newPassword: z.string().min(8, 'Nova senha com no mínimo 8 caracteres'),
+});
+
+const connectWhatsappSchema = z.object({
+  instanceName: z.string().min(2).max(120),
 });
 
 export async function get(
@@ -70,7 +80,9 @@ export async function connectWhatsapp(
   request: FastifyRequest<{ Body: unknown }>,
   reply: FastifyReply
 ): Promise<FastifyReply> {
-  const result = await settingsService.connectWhatsapp(request.userId);
+  const parsed = connectWhatsappSchema.safeParse(request.body);
+  if (!parsed.success) return replyError(reply, 400, 'Dados inválidos', 'VALIDATION_ERROR');
+  const result = await settingsService.connectWhatsapp(request.userId, parsed.data.instanceName);
   if (result.error) return replyError(reply, result.statusCode, result.error, result.code);
   return reply.send(result.data);
 }

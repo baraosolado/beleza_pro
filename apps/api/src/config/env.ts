@@ -52,8 +52,13 @@ const envSchema = z.object({
   JWT_REFRESH_SECRET: z.string().min(1, 'JWT_REFRESH_SECRET é obrigatória'),
   JWT_EXPIRES_IN: z.string().default('15m'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
+  WHATSAPP_PROVIDER: z.enum(['uazapi', 'evolution']).default('uazapi'),
   UAZAPI_BASE_URL: z.string().optional(),
   UAZAPI_TOKEN: z.string().optional(),
+  EVOLUTION_API_URL: z.string().optional(),
+  EVOLUTION_API_KEY: z.string().optional(),
+  EVOLUTION_WEBHOOK_URL: z.string().optional(),
+  EVOLUTION_N8N_WEBHOOK_URL: z.string().optional(),
   N8N_INVOICE_PREVIEW_WEBHOOK_URL: z.string().optional(),
   N8N_INVOICE_SEND_WEBHOOK_URL: z.string().optional(),
   /** Webhook n8n: solicita sorteio + vídeo (ganhadora devolvida por nome completo). */
@@ -64,6 +69,8 @@ const envSchema = z.object({
   N8N_CONSORCIO_PDF_UPLOAD_WEBHOOK_URL: z.string().optional(),
   /** Webhook n8n: enviar revista (link/base64) para qualquer cliente cadastrado (menu Clientes). */
   N8N_CONSORCIO_REVISTA_CLIENT_WEBHOOK_URL: z.string().optional(),
+  /** Webhook n8n: envio de produto para cliente no WhatsApp. */
+  N8N_PRODUCT_SEND_WEBHOOK_URL: z.string().optional(),
   /** Em dev pode ficar vazio: filas BullMQ (WhatsApp/lembretes) ficam desativadas. Em produção é obrigatória. */
   REDIS_URL: z.string().optional(),
   NEXT_PUBLIC_API_URL: z.string().optional(),

@@ -8,7 +8,9 @@ export async function productsRoutes(app: FastifyInstance): Promise<void> {
 
   app.get('/', productsController.list);
   app.post('/', productsController.create);
+  app.post('/:id/send-whatsapp', productsController.sendWhatsapp);
   app.get('/:id', productsController.getById);
   app.put('/:id', productsController.update);
+  app.delete('/:id', productsController.remove);
 }
 

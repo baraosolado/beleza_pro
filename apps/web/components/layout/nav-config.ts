@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react';
 import {
+  BarChart3,
   CalendarDays,
   CreditCard,
   FileText,
@@ -25,6 +26,7 @@ export const appNavItems: AppNavItem[] = [
   { href: '/services', label: 'Serviços', icon: Scissors },
   { href: '/products', label: 'Produtos', icon: Package },
   { href: '/charges', label: 'Cobranças', icon: CreditCard },
+  { href: '/reports', label: 'Relatórios', icon: BarChart3 },
   { href: '/consorcio', label: 'Consórcio', icon: Handshake },
   { href: '/send-invoice', label: 'Enviar Conta', icon: FileText },
   { href: '/settings', label: 'Configurações', icon: Settings },

@@ -71,6 +71,7 @@ model User {
   businessPhone              String?   @map("business_phone") @db.VarChar(20)
   businessPixKey             String?   @map("business_pix_key") @db.VarChar(255)
   businessAddress            String?   @map("business_address") @db.Text
+  avatarUrl                  String?   @map("avatar_url") @db.Text
   workingHours               Json?     @map("working_hours")
   createdAt                  DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt                  DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz

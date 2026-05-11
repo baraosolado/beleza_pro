@@ -1,20 +1,8 @@
 import { env } from '../config/env.js';
+import type { SendMediaParams, SendTextParams, WhatsAppProvider } from './whatsapp/types.js';
 
 const BASE_URL = env.UAZAPI_BASE_URL?.replace(/\/$/, '') ?? '';
 const TOKEN = env.UAZAPI_TOKEN ?? '';
-
-export type SendTextParams = {
-  instanceId: string;
-  phone: string;
-  text: string;
-};
-
-export type SendMediaParams = {
-  instanceId: string;
-  phone: string;
-  mediaUrl: string;
-  caption?: string;
-};
 
 async function request<T>(
   method: string,
@@ -38,8 +26,16 @@ async function request<T>(
   return res.json() as Promise<T>;
 }
 
-export async function createInstance(instanceId: string): Promise<unknown> {
-  return request('POST', '/instance/create', { instance_id: instanceId });
+export async function createInstance(params: { instanceId: string; name?: string }): Promise<unknown> {
+  return request('POST', '/instance/create', { instance_id: params.instanceId });
+}
+
+export async function connectInstance(params: { instanceId: string }): Promise<unknown> {
+  return request('GET', `/instance/connect?instance_id=${encodeURIComponent(params.instanceId)}`);
+}
+
+export async function configureInstance(_params: { instanceId: string }): Promise<unknown> {
+  return {};
 }
 
 export async function getConnectQr(instanceId: string): Promise<{ base64: string } | unknown> {
@@ -66,3 +62,13 @@ export async function sendMedia(params: SendMediaParams): Promise<unknown> {
 export function isConfigured(): boolean {
   return BASE_URL.length > 0 && TOKEN.length > 0;
 }
+
+export const uazapiProvider: WhatsAppProvider = {
+  connectInstance,
+  configureInstance,
+  createInstance,
+  getConnectQr,
+  isConfigured,
+  sendMedia,
+  sendText,
+};

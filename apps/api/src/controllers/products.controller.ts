@@ -4,6 +4,11 @@ import { z } from 'zod';
 import { replyError } from '../lib/errors.js';
 import * as productsService from '../services/products.service.js';
 
+const imageUrlSchema = z
+  .string()
+  .url()
+  .or(z.string().regex(/^data:image\/(png|jpeg|jpg|webp);base64,[A-Za-z0-9+/=]+$/));
+
 const idParamSchema = z.object({
   id: z.string().uuid(),
 });
@@ -22,7 +27,7 @@ const createSchema = z.object({
   lowStockAlert: z.boolean().optional(),
   lowStockThreshold: z.number().int().min(0).nullable().optional(),
   sku: z.string().optional(),
-  imageUrl: z.string().url().optional(),
+  imageUrl: imageUrlSchema.optional(),
 });
 
 const updateSchema = z.object({
@@ -35,7 +40,16 @@ const updateSchema = z.object({
   lowStockAlert: z.boolean().optional(),
   lowStockThreshold: z.number().int().min(0).nullable().optional(),
   sku: z.string().optional(),
-  imageUrl: z.string().url().optional(),
+  imageUrl: imageUrlSchema.optional(),
+});
+
+const sendWhatsappSchema = z.object({
+  phone: z
+    .string()
+    .min(10, 'Telefone inválido')
+    .transform((v) => v.replace(/\D/g, ''))
+    .refine((v) => v.length >= 10 && v.length <= 13, 'Telefone inválido'),
+  clientName: z.string().max(120).optional(),
 });
 
 export async function getById(
@@ -93,6 +107,43 @@ export async function update(
   }
 
   const result = await productsService.update(
+    request.userId,
+    parsedParams.data.id,
+    parsedBody.data
+  );
+  if (result.error) return replyError(reply, result.statusCode, result.error, result.code);
+  return reply.send(result.data);
+}
+
+export async function remove(
+  request: FastifyRequest<{ Params: { id: string } }>,
+  reply: FastifyReply
+): Promise<FastifyReply> {
+  const parsedParams = idParamSchema.safeParse(request.params);
+  if (!parsedParams.success) {
+    return replyError(reply, 400, 'Parâmetros inválidos', 'VALIDATION_ERROR');
+  }
+
+  const result = await productsService.remove(request.userId, parsedParams.data.id);
+  if (result.error) return replyError(reply, result.statusCode, result.error, result.code);
+  return reply.status(204).send();
+}
+
+export async function sendWhatsapp(
+  request: FastifyRequest<{ Params: { id: string }; Body: unknown }>,
+  reply: FastifyReply
+): Promise<FastifyReply> {
+  const parsedParams = idParamSchema.safeParse(request.params);
+  if (!parsedParams.success) {
+    return replyError(reply, 400, 'Parâmetros inválidos', 'VALIDATION_ERROR');
+  }
+
+  const parsedBody = sendWhatsappSchema.safeParse(request.body);
+  if (!parsedBody.success) {
+    return replyError(reply, 400, 'Dados inválidos', 'VALIDATION_ERROR');
+  }
+
+  const result = await productsService.sendViaWebhook(
     request.userId,
     parsedParams.data.id,
     parsedBody.data

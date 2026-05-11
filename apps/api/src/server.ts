@@ -18,6 +18,7 @@ import { dashboardRoutes } from './routes/dashboard.routes.js';
 import { sendInvoiceRoutes } from './routes/sendInvoice.routes.js';
 import { productsRoutes } from './routes/products.routes.js';
 import { productCategoriesRoutes } from './routes/productCategories.routes.js';
+import { reportsRoutes } from './routes/reports.routes.js';
 import { settingsRoutes } from './routes/settings.routes.js';
 import { servicesRoutes } from './routes/services.routes.js';
 import { webhooksRoutes } from './routes/webhooks.routes.js';
@@ -28,9 +29,32 @@ import './jobs/reminders.job.js';
 
 const ALLOWED_ORIGINS = ['http://localhost:3000', 'http://127.0.0.1:3000'];
 
+function extractHost(url: string | undefined): string | null {
+  if (!url) return null;
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+  try {
+    const withProtocol =
+      trimmed.startsWith('http://') || trimmed.startsWith('https://')
+        ? trimmed
+        : `https://${trimmed}`;
+    const parsed = new URL(withProtocol);
+    return parsed.host;
+  } catch {
+    return null;
+  }
+}
+
 function isAllowedOrigin(origin: string | undefined): boolean {
   if (!origin) return true;
-  return ALLOWED_ORIGINS.includes(origin) || (env.APP_URL ? origin === env.APP_URL : false);
+  if (ALLOWED_ORIGINS.includes(origin)) return true;
+
+  const appUrlHost = extractHost(env.APP_URL);
+  const originHost = extractHost(origin);
+
+  if (appUrlHost && originHost && appUrlHost === originHost) return true;
+
+  return false;
 }
 
 async function build() {
@@ -134,6 +158,7 @@ async function build() {
       scope.register(servicesRoutes, { prefix: '/services' });
       scope.register(productsRoutes, { prefix: '/products' });
       scope.register(productCategoriesRoutes, { prefix: '/product-categories' });
+      scope.register(reportsRoutes, { prefix: '/reports' });
       scope.register(appointmentsRoutes, { prefix: '/appointments' });
       scope.register(chargesRoutes, { prefix: '/charges' });
       scope.register(consorcioRoutes, { prefix: '/consorcio' });

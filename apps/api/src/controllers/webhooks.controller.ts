@@ -9,3 +9,11 @@ export async function uazapi(
   await webhooksService.handleUazapiEvent(request.body as Record<string, unknown>);
   return reply.status(200).send({ received: true });
 }
+
+export async function evolution(
+  request: FastifyRequest<{ Body: unknown }>,
+  reply: FastifyReply
+): Promise<FastifyReply> {
+  await webhooksService.handleEvolutionEvent(request.body as Record<string, unknown>);
+  return reply.status(200).send({ received: true });
+}

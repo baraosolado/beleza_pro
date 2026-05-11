@@ -2,7 +2,8 @@ import argon2 from 'argon2';
 
 import { prisma } from '../db/prisma/client.js';
 
-import * as uazapi from '../integrations/uazapi.js';
+import * as whatsapp from '../integrations/whatsapp/index.js';
+import { getInstanceState } from './whatsapp-runtime-state.service.js';
 
 type ServiceResult<T> =
   | { data: T; error?: never }
@@ -18,8 +19,23 @@ type UpdateInput = {
   businessPhone?: string;
   businessPixKey?: string;
   businessAddress?: string;
+  avatarUrl?: string | null;
   workingHours?: Record<string, unknown>;
 };
+
+function isInstanceAlreadyExistsError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const message = error.message.toLowerCase();
+  return (
+    message.includes('already exists') ||
+    message.includes('alreadyexist') ||
+    message.includes('instance already') ||
+    message.includes('duplicate key value') ||
+    message.includes('instances_pkey') ||
+    message.includes('sqlstate 23505') ||
+    message.includes('409')
+  );
+}
 
 export async function get(
   userId: string
@@ -36,6 +52,8 @@ export async function get(
     businessPhone: string | null;
     businessPixKey: string | null;
     businessAddress: string | null;
+    avatarUrl: string | null;
+    whatsappInstanceId: string | null;
     workingHours: unknown;
     createdAt: string;
   }>
@@ -54,6 +72,8 @@ export async function get(
       businessPhone: true,
       businessPixKey: true,
       businessAddress: true,
+      avatarUrl: true,
+      whatsappInstanceId: true,
       workingHours: true,
       createdAt: true,
     },
@@ -72,6 +92,8 @@ export async function get(
       businessPhone: user.businessPhone,
       businessPixKey: user.businessPixKey,
       businessAddress: user.businessAddress,
+      avatarUrl: user.avatarUrl,
+      whatsappInstanceId: user.whatsappInstanceId,
       workingHours: user.workingHours,
       createdAt: user.createdAt.toISOString(),
     },
@@ -94,6 +116,7 @@ export async function update(
       ...(input.businessPhone !== undefined && { businessPhone: input.businessPhone || null }),
       ...(input.businessPixKey !== undefined && { businessPixKey: input.businessPixKey || null }),
       ...(input.businessAddress !== undefined && { businessAddress: input.businessAddress || null }),
+      ...(input.avatarUrl !== undefined && { avatarUrl: input.avatarUrl || null }),
       ...(input.workingHours !== undefined && { workingHours: input.workingHours as object }),
     },
     select: {
@@ -108,6 +131,7 @@ export async function update(
       businessPhone: true,
       businessPixKey: true,
       businessAddress: true,
+      avatarUrl: true,
       workingHours: true,
     },
   });
@@ -138,7 +162,7 @@ export async function changePassword(
 
 export async function getWhatsappQrcode(
   userId: string
-): Promise<ServiceResult<{ qrcode: string | null; connected: boolean }>> {
+): Promise<ServiceResult<{ qrcode: string | null; connected: boolean; phone?: string | null }>> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { whatsappInstanceId: true },
@@ -147,28 +171,72 @@ export async function getWhatsappQrcode(
   if (!user.whatsappInstanceId) {
     return { data: { qrcode: null, connected: false } };
   }
-  if (!uazapi.isConfigured()) {
+  if (!whatsapp.isConfigured()) {
     return { data: { qrcode: null, connected: false } };
   }
+  const runtime = getInstanceState(user.whatsappInstanceId);
+  if (runtime) {
+    return {
+      data: {
+        qrcode: runtime.qrcode,
+        connected: runtime.connected,
+        phone: runtime.phone,
+      },
+    };
+  }
   try {
-    const result = await uazapi.getConnectQr(user.whatsappInstanceId) as { base64?: string };
+    const result = await whatsapp.getConnectQr(user.whatsappInstanceId) as { base64?: string };
     return { data: { qrcode: result?.base64 ?? null, connected: false } };
-  } catch {
+  } catch (error) {
+    console.error('[settings.getWhatsappQrcode] failed to load QR code', {
+      userId,
+      error: error instanceof Error ? error.message : 'unknown',
+    });
     return { data: { qrcode: null, connected: false } };
   }
 }
 
 export async function connectWhatsapp(
-  userId: string
+  userId: string,
+  instanceName: string
 ): Promise<ServiceResult<{ instanceId: string }>> {
-  const instanceId = `user-${userId}`;
-  if (!uazapi.isConfigured()) {
-    return { error: 'WhatsApp não configurado', code: 'UAZAPI_NOT_CONFIGURED', statusCode: 503 };
+  const instanceId = userId;
+  if (!whatsapp.isConfigured()) {
+    return { error: 'WhatsApp não configurado', code: 'WHATSAPP_NOT_CONFIGURED', statusCode: 503 };
   }
   try {
-    await uazapi.createInstance(instanceId);
-  } catch {
-    // instance may already exist
+    await whatsapp.createNamedInstance({ instanceId, name: instanceName.trim() });
+  } catch (error) {
+    console.error('[settings.connectWhatsapp] failed to create instance', {
+      userId,
+      instanceId,
+      error: error instanceof Error ? error.message : 'unknown',
+    });
+    if (!isInstanceAlreadyExistsError(error)) {
+      return {
+        error: 'Não foi possível criar a instância do WhatsApp',
+        code: 'WHATSAPP_INSTANCE_CREATE_FAILED',
+        statusCode: 502,
+      };
+    }
+  }
+  try {
+    await whatsapp.connectInstance({ instanceId });
+  } catch (error) {
+    console.error('[settings.connectWhatsapp] failed to connect instance', {
+      userId,
+      instanceId,
+      error: error instanceof Error ? error.message : 'unknown',
+    });
+  }
+  try {
+    await whatsapp.configureInstance({ instanceId });
+  } catch (error) {
+    console.error('[settings.connectWhatsapp] failed to configure instance', {
+      userId,
+      instanceId,
+      error: error instanceof Error ? error.message : 'unknown',
+    });
   }
   await prisma.user.update({
     where: { id: userId },

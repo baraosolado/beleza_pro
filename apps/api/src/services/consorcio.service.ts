@@ -1,6 +1,6 @@
 import { env } from '../config/env.js';
 import { mapConsorcioDbError } from '../lib/consorcio-db-errors.js';
-import * as uazapi from '../integrations/uazapi.js';
+import * as whatsapp from '../integrations/whatsapp/index.js';
 import {
   type ConsorcioDrawN8nSolicitacaoPayload,
   type ConsorcioN8nAutomationStored,
@@ -1312,7 +1312,7 @@ export async function sendConsorcioPdfToParticipant(
 
   // Fallback dev/local: manda direto sem fila BullMQ.
   try {
-    await uazapi.sendMedia({ instanceId, phone, mediaUrl, caption: message });
+    await whatsapp.sendMedia({ instanceId, phone, mediaUrl, caption: message });
     await prisma.whatsAppMessage.create({
       data: {
         userId,

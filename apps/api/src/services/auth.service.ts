@@ -2,7 +2,6 @@ import * as crypto from 'node:crypto';
 import * as jose from 'jose';
 
 import argon2 from 'argon2';
-import { Prisma } from '@prisma/client';
 
 import { env } from '../config/env.js';
 import { prisma } from '../db/prisma/client.js';
@@ -87,10 +86,14 @@ export async function login(input: LoginInput): Promise<ServiceResult<{ user: Us
       'Serviço indisponível. Verifique o banco de dados e tente novamente.';
 
     if (isDev) {
-      if (err instanceof Prisma.PrismaClientKnownRequestError) {
-        message = `Banco de dados [${err.code}]: ${err.message}`;
-      } else if (err instanceof Prisma.PrismaClientInitializationError) {
-        message = `Prisma não conectou: ${err.message}`;
+      if (
+        err &&
+        typeof err === 'object' &&
+        'code' in err &&
+        typeof (err as { code?: unknown }).code === 'string' &&
+        err instanceof Error
+      ) {
+        message = `Banco de dados [${(err as { code: string }).code}]: ${err.message}`;
       } else if (err instanceof Error) {
         message = `Erro no login: ${err.message}`;
       }
