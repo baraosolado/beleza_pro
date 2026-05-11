@@ -45,14 +45,36 @@ function extractHost(url: string | undefined): string | null {
   }
 }
 
+function comparableHost(host: string): string {
+  const lower = host.toLowerCase();
+  return lower.startsWith('www.') ? lower.slice(4) : lower;
+}
+
+function parseExtraCorsHosts(raw: string | undefined): Set<string> {
+  const set = new Set<string>();
+  const trimmed = (raw ?? '').trim();
+  if (!trimmed) return set;
+  for (const part of trimmed.split(',')) {
+    const h = extractHost(part.trim());
+    if (h) set.add(comparableHost(h));
+  }
+  return set;
+}
+
+const EXTRA_CORS_COMPARABLE_HOSTS = parseExtraCorsHosts(env.CORS_ALLOWED_ORIGINS);
+
 function isAllowedOrigin(origin: string | undefined): boolean {
   if (!origin) return true;
   if (ALLOWED_ORIGINS.includes(origin)) return true;
 
-  const appUrlHost = extractHost(env.APP_URL);
   const originHost = extractHost(origin);
+  if (!originHost) return false;
+  const originKey = comparableHost(originHost);
 
-  if (appUrlHost && originHost && appUrlHost === originHost) return true;
+  const appUrlHost = extractHost(env.APP_URL);
+  if (appUrlHost && comparableHost(appUrlHost) === originKey) return true;
+
+  if (EXTRA_CORS_COMPARABLE_HOSTS.has(originKey)) return true;
 
   return false;
 }

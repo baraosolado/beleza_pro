@@ -75,6 +75,7 @@ const envSchema = z.object({
   REDIS_URL: z.string().optional(),
   NEXT_PUBLIC_API_URL: z.string().optional(),
   APP_URL: z.string().optional(),
+  CORS_ALLOWED_ORIGINS: z.string().optional(),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 })
   .superRefine((data, ctx) => {
